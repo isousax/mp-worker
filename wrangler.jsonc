@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "mp-worker",
+	"name": "dedicart-mp-worker",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-07-26",
 	"observability": {
