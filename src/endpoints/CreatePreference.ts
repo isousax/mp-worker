@@ -4,7 +4,7 @@ interface PreferenceRequestBody {
 	id: string;
 	title: string;
 	price: number;
-	currency_id: string
+	currency_id: string;
 	picture_url?: string;
 }
 
