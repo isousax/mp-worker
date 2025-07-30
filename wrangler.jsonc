@@ -16,8 +16,8 @@
 	"d1_databases": [
     {
       "binding": "DB",
-      "database_name": "intentions",
-      "database_id": "f75d0903-886a-4da9-b257-007ebc11d892"
+      "database_name": "payment_service",
+      "database_id": "92a2ebf1-04e6-4121-a26a-4aba1f4439a3"
     }
   ]
 	/**
