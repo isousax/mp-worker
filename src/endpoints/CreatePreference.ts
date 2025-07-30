@@ -1,5 +1,4 @@
 import type { Env } from "../index";
-import { randomUUID } from "crypto";
 
 interface PreferenceRequestBody {
 	produtc: {
@@ -30,7 +29,7 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 			);
 		}
 
-		const intentionId = randomUUID();
+		const intentionId = crypto.randomUUID();
 		await saveIntentionInDB(intentionId, body.player.email, body.produtc.templateId, body.produtc.plan, body.form_data);
 
 		const preference = {
