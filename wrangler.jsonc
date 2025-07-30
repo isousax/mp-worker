@@ -12,7 +12,14 @@
 	},
 	"vars":{
 		"SITE_DNS": "dedicart.com.br",
-	}
+	},
+	"d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "intentions_db",
+      "database_id": "bbec369d-0451-4135-9d0b-5defe007edd7"
+    }
+  ]
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

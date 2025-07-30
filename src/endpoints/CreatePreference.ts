@@ -1,21 +1,26 @@
 import type { Env } from "../index";
+import { randomUUID } from "crypto";
 
 interface PreferenceRequestBody {
-	id: string;
-	title: string;
-	price: number;
-	currency_id: string;
-	picture_url?: string;
+	produtc: {
+		templateId: string;
+		title: string;
+		price: number;
+		plan: string;
+		currency_id: string;
+		picture_url?: string;
+	},
+	player: {
+		email: string;
+	}
+	form_data: Record<string, any>;
 }
 
 export async function handleCreatePreference(request: Request, env: Env): Promise<Response> {
 	try {
-		//console.log("Headers:", JSON.stringify([...request.headers]));
 		const bodyText = await request.text();
-		//console.log("Raw body:", bodyText);
-
-		// Tentar parsear o JSON
 		let body: PreferenceRequestBody;
+
 		try {
 			body = JSON.parse(bodyText);
 		} catch {
@@ -25,41 +30,31 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 			);
 		}
 
-		// Validação estrita
-		if (
-			typeof body !== "object" ||
-			typeof body.id !== "string" ||
-			typeof body.title !== "string" ||
-			typeof body.currency_id !== "string" ||
-			typeof body.picture_url !== "string" ||
-			typeof body.price !== "number"
-		) {
-			return new Response(
-				JSON.stringify({ status: 400, message: "Corpo da requisição malformado." }),
-				{ status: 400, headers: { "Content-Type": "application/json" } }
-			);
-		}
+		const intentionId = randomUUID();
+		await saveIntentionInDB(intentionId, body.player.email, body.produtc.templateId, body.produtc.plan, body.form_data);
 
 		const preference = {
 			items: [
 				{
-					id: body.id,
-					title: body.title,
+					id: body.produtc.templateId,
+					title: body.produtc.title,
 					quantity: 1,
-					unit_price: body.price,
-					currency_id: body.currency_id,
-					picture_url: body.picture_url,
+					unit_price: body.produtc.price,
+					currency_id: body.produtc.currency_id,
+					picture_url: body.produtc.picture_url,
 				},
 			],
+			payer: {
+				email: body.player.email,
+			},
 			back_urls: {
-				success: `https://${env.SITE_DNS}/models/${body.id}/sucesso`,
-				failure: `https://${env.SITE_DNS}/models/${body.id}/falha`,
-				pending: `https://${env.SITE_DNS}/models/${body.id}/pendente`,
+				success: `https://${env.SITE_DNS}/models/${body.produtc.templateId}/sucesso`,
+				failure: `https://${env.SITE_DNS}/models/${body.produtc.templateId}/falha`,
+				pending: `https://${env.SITE_DNS}/models/${body.produtc.templateId}/pendente`,
 			},
 			auto_return: "approved",
+			external_reference: intentionId,
 		};
-
-		//console.log("Body da preferência:", JSON.stringify(preference));
 
 		const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
 			method: "POST",
@@ -72,7 +67,9 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 
 		if (!response.ok) {
 			const errorText = await response.text();
-			return new Response(`Erro na criação da preferência: ${errorText}`, { status: 500 });
+			return new Response(
+				JSON.stringify({ status: response.status, message: `Erro na criação da preference: ${errorText}`  }),
+				{ status: response.status, headers: { "Content-Type": "application/json" } });
 		}
 
 		const data = await response.json() as { id: string; init_point: string };
@@ -82,10 +79,29 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 			status: 200,
 		});
 	} catch (err) {
-		//console.error("Erro inesperado:", err);
 		return new Response(
 			JSON.stringify({ status: 500, message: "Erro inesperado no servidor." }),
 			{ status: 500, headers: { "Content-Type": "application/json" } }
 		);
+	}
+
+	function saveIntentionInDB(
+		intentionId: string,
+		email: string,
+		templateId: string,
+		plan: string,
+		formData: Record<string, any>
+	): Promise<void> {
+		return env.DB.prepare(`
+			INSERT INTO intentions (id, email, template_id, plan, form_data, created_at)
+			VALUES (?, ?, ?, ?, ?, ?)
+			`).bind(
+			intentionId,
+			email,
+			templateId,
+			plan,
+			JSON.stringify(formData),
+			new Date().toISOString()
+		).run().then(() => { });
 	}
 }

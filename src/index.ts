@@ -1,6 +1,7 @@
 export interface Env {
   MP_ACCESS_TOKEN: string;
   SITE_DNS: string;
+  DB: D1Database;
 }
 
 import { handleCreatePreference } from "./endpoints/CreatePreference";
