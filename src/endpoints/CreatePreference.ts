@@ -30,7 +30,17 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 		}
 
 		const intentionId = crypto.randomUUID();
-		await saveIntentionInDB(intentionId, body.player.email, body.produtc.templateId, body.produtc.plan, body.form_data);
+		await env.DB.prepare(`
+  INSERT INTO intentions_db (id, email, template_id, plan, form_data, created_at)
+  VALUES (?, ?, ?, ?, ?, ?)
+`).bind(
+			intentionId,
+			body.player.email,
+			body.produtc.templateId,
+			body.produtc.plan,
+			JSON.stringify(body.form_data),
+			new Date().toISOString()
+		).run();
 
 		const preference = {
 			items: [
@@ -67,7 +77,7 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 		if (!response.ok) {
 			const errorText = await response.text();
 			return new Response(
-				JSON.stringify({ status: response.status, message: `Erro na criação da preference: ${errorText}`  }),
+				JSON.stringify({ status: response.status, message: `Erro na criação da preference: ${errorText}` }),
 				{ status: response.status, headers: { "Content-Type": "application/json" } });
 		}
 
@@ -82,25 +92,5 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 			JSON.stringify({ status: 500, message: "Erro inesperado no servidor." }),
 			{ status: 500, headers: { "Content-Type": "application/json" } }
 		);
-	}
-
-	function saveIntentionInDB(
-		intentionId: string,
-		email: string,
-		templateId: string,
-		plan: string,
-		formData: Record<string, any>
-	): Promise<void> {
-		return env.DB.prepare(`
-			INSERT INTO intentions (id, email, template_id, plan, form_data, created_at)
-			VALUES (?, ?, ?, ?, ?, ?)
-			`).bind(
-			intentionId,
-			email,
-			templateId,
-			plan,
-			JSON.stringify(formData),
-			new Date().toISOString()
-		).run().then(() => { });
 	}
 }

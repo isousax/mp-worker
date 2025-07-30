@@ -16,8 +16,8 @@
 	"d1_databases": [
     {
       "binding": "DB",
-      "database_name": "intentions_db",
-      "database_id": "bbec369d-0451-4135-9d0b-5defe007edd7"
+      "database_name": "intentions",
+      "database_id": "f75d0903-886a-4da9-b257-007ebc11d892"
     }
   ]
 	/**
