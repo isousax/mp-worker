@@ -1,7 +1,7 @@
 import type { Env } from "../index";
 
 interface PreferenceRequestBody {
-	produtc: {
+	product: {
 		templateId: string;
 		title: string;
 		price: number;
@@ -29,9 +29,9 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 			);
 		}
 
-		if (!body.player?.email || !body.produtc?.templateId || !body.produtc?.plan ||
-			!body.produtc?.title || !body.produtc?.price || !body.produtc?.currency_id ||
-			!body.produtc?.picture_url) {
+		if (!body.player?.email || !body.product?.templateId || !body.product?.plan ||
+			!body.product?.title || !body.product?.price || !body.product?.currency_id ||
+			!body.product?.picture_url) {
 			return new Response(
 				JSON.stringify({ status: 400, message: "Corpo da requisição malformado." }),
 				{ status: 400, headers: { "Content-Type": "application/json" } }
@@ -46,8 +46,8 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 `).bind(
 			intentionId,
 			body.player.email,
-			body.produtc.templateId,
-			body.produtc.plan,
+			body.product.templateId,
+			body.product.plan,
 			JSON.stringify(body.form_data),
 			new Date().toISOString()
 		).run();
@@ -55,21 +55,21 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 		const preference = {
 			items: [
 				{
-					id: body.produtc.templateId,
-					title: body.produtc.title,
+					id: body.product.templateId,
+					title: body.product.title,
 					quantity: 1,
-					unit_price: body.produtc.price,
-					currency_id: body.produtc.currency_id,
-					picture_url: body.produtc.picture_url,
+					unit_price: body.product.price,
+					currency_id: body.product.currency_id,
+					picture_url: body.product.picture_url,
 				},
 			],
 			payer: {
 				email: body.player.email,
 			},
 			back_urls: {
-				success: `https://${env.SITE_DNS}/models/${body.produtc.templateId}/sucesso`,
-				failure: `https://${env.SITE_DNS}/models/${body.produtc.templateId}/falha`,
-				pending: `https://${env.SITE_DNS}/models/${body.produtc.templateId}/pendente`,
+				success: `https://${env.SITE_DNS}/models/${body.product.templateId}/sucesso`,
+				failure: `https://${env.SITE_DNS}/models/${body.product.templateId}/falha`,
+				pending: `https://${env.SITE_DNS}/models/${body.product.templateId}/pendente`,
 			},
 			auto_return: "approved",
 			external_reference: intentionId,
