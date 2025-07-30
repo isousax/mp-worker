@@ -7,7 +7,6 @@
 		"enabled": true
 	},
 	"vars": {
-		"MP_ACCESS_TOKEN": "APP_USR-6579664961006336-072823-46b2d45e86a23c9ccf9be7b48de29253-320781242",
 		"SITE_DNS": "dedicart.com.br",
 	},
 	"d1_databases": [
