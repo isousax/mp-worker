@@ -1,10 +1,11 @@
+import type { D1Database } from "@cloudflare/workers-types";
+import { handleCreatePreference } from "./endpoints/CreatePreference";
+
 export interface Env {
   MP_ACCESS_TOKEN: string;
   SITE_DNS: string;
   DB: D1Database;
 }
-
-import { handleCreatePreference } from "./endpoints/CreatePreference";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -16,7 +17,7 @@ export default {
 
     return new Response(
 				JSON.stringify({ status: 404, message: "Not Found." }),
-				{ status: 400, headers: { "Content-Type": "application/json" } }
+				{ status: 404, headers: { "Content-Type": "application/json" } }
 			);
   },
 };

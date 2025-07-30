@@ -29,6 +29,16 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 			);
 		}
 
+		if (!body.player?.email || !body.produtc?.templateId || !body.produtc?.plan ||
+			!body.produtc?.title || !body.produtc?.price || !body.produtc?.currency_id ||
+			!body.produtc?.picture_url) {
+			return new Response(
+				JSON.stringify({ status: 400, message: "Corpo da requisição malformado." }),
+				{ status: 400, headers: { "Content-Type": "application/json" } }
+			);
+		}
+
+
 		const intentionId = crypto.randomUUID();
 		await env.DB.prepare(`
   INSERT INTO intentions_db (id, email, template_id, plan, form_data, created_at)
@@ -88,6 +98,7 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 			status: 200,
 		});
 	} catch (err) {
+		console.error("Erro interno:", err);
 		return new Response(
 			JSON.stringify({ status: 500, message: "Erro inesperado no servidor." }),
 			{ status: 500, headers: { "Content-Type": "application/json" } }
