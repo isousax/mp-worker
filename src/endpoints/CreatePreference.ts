@@ -39,72 +39,81 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
         }
 
 
-    const intentionId = nanoId(10, 'P-');
-    const finalSiteUrl = `https://${env.SITE_DNS}/site/${intentionId}`;
-    const createdAt = new Date().toISOString();
+        const intentionId = nanoId(10, 'P-');
+        const finalSiteUrl = `https://${env.SITE_DNS}/site/${intentionId}`;
+        const createdAt = new Date().toISOString();
 
-    const preference = {
-        items: [
-            {
-                id: body.productInfo.template_id,
-                title: planLabels(body.productInfo.title),
-                quantity: 1,
-                unit_price: body.productInfo.price,
-                currency_id: body.productInfo.currency_id,
-                picture_url: body.productInfo.picture_url,
+        const preference = {
+            items: [
+                {
+                    id: body.productInfo.template_id,
+                    title: planLabels(body.productInfo.title),
+                    quantity: 1,
+                    unit_price: body.productInfo.price,
+                    currency_id: body.productInfo.currency_id,
+                    picture_url: body.productInfo.picture_url,
+                },
+            ],
+            payer: {
+                email: body.payer.email,
             },
-        ],
-        payer: {
-            email: body.payer.email,
-        },
-        back_urls: {
-            success: `https://${env.SITE_DNS}/models/${body.productInfo.template_id}/sucesso`,
-            failure: `https://${env.SITE_DNS}/models/${body.productInfo.template_id}/falha`,
-            pending: `https://${env.SITE_DNS}/models/${body.productInfo.template_id}/pendente`,
-        },
-        auto_return: "approved",
-        external_reference: intentionId,
-    };
+            back_urls: {
+                success: `https://${env.SITE_DNS}/models/${body.productInfo.template_id}/sucesso`,
+                failure: `https://${env.SITE_DNS}/models/${body.productInfo.template_id}/falha`,
+                pending: `https://${env.SITE_DNS}/models/${body.productInfo.template_id}/pendente`,
+            },
+            auto_return: "approved",
+            external_reference: intentionId,
+        };
 
-    const responseMP = await fetch("https://api.mercadopago.com/checkout/preferences", {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(preference),
-    });
+        const responseMP = await fetch("https://api.mercadopago.com/checkout/preferences", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(preference),
+        });
 
-    if (!responseMP.ok) {
-        const errorText = await responseMP.text();
-        return new Response(
-            JSON.stringify({ status: responseMP.status, message: `Erro na criação da preference: ${errorText}` }),
-            { status: responseMP.status, headers: jsonHeader });
-    }
+        if (!responseMP.ok) {
+            const errorText = await responseMP.text();
+            return new Response(
+                JSON.stringify({ status: responseMP.status, message: `Erro na criação da preference: ${errorText}` }),
+                { status: responseMP.status, headers: jsonHeader });
+        }
 
-    const dataResponseMP = await responseMP.json() as { id: string; init_point: string };
+        const dataResponseMP = await responseMP.json() as { id: string; init_point: string };
 
-    const sql = `
+        const sqlInention = `
         INSERT INTO intentions (intention_id, email, template_id, plan, price, preference_id, final_url, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
-    await env.DB.prepare(sql).bind(
-        intentionId,
-        body.payer.email,
-        body.productInfo.template_id,
-        body.productInfo.plan,
-        body.productInfo.price,
-        dataResponseMP.id,
-        finalSiteUrl,
-        createdAt
-    ).run();
+        await env.DB.prepare(sqlInention).bind(
+            intentionId,
+            body.payer.email,
+            body.productInfo.template_id,
+            body.productInfo.plan,
+            body.productInfo.price,
+            dataResponseMP.id,
+            finalSiteUrl,
+            createdAt
+        ).run();
 
-    await saveDataModel(env, intentionId, body, createdAt);
+        const sqlModel = `
+        INSERT INTO ${body.productInfo.template_id} (intention_id, form_data, created_at)
+        VALUES (?, ?, ?)
+        `;
+        console.log("Saving data model with SQL:", sqlModel);
+        await env.DB.prepare(sqlModel).bind(
+            intentionId,
+            JSON.stringify(body.form_data),
+            createdAt
+        ).run();
 
-    return new Response(JSON.stringify({ id: dataResponseMP.id, init_point: dataResponseMP.init_point }), {
-        headers: jsonHeader,
-        status: 200,
-    });
+        return new Response(JSON.stringify({ id: dataResponseMP.id, init_point: dataResponseMP.init_point }), {
+            headers: jsonHeader,
+            status: 200,
+        });
     } catch (err) {
         console.log("Erro interno:", err);
         console.error("Erro interno:", err);
@@ -133,16 +142,4 @@ function isValidEmail(email: string): boolean {
 }
 function isNonEmpty(str: string | undefined): boolean {
     return typeof str === 'string' && str.trim().length > 0;
-}
-
-function saveDataModel(env: Env, intentionId: string, body: PreferenceRequestBody, createdAt: string): void {
-    const sql = `
-        INSERT INTO ${body.productInfo.template_id} (intention_id, form_data, created_at)
-        VALUES (?, ?, ?)
-    `;
-    env.DB.prepare(sql).bind(
-        intentionId,
-        JSON.stringify(body.form_data),
-        createdAt
-    ).run();
 }
