@@ -84,11 +84,11 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 
         const dataResponseMP = await responseMP.json() as { id: string; init_point: string };
 
-        const sqlInention = `
+        const sqlIntention = `
         INSERT INTO intentions (intention_id, email, template_id, plan, price, preference_id, final_url, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
-        await env.DB.prepare(sqlInention).bind(
+        await env.DB.prepare(sqlIntention).bind(
             intentionId,
             body.payer.email,
             body.productInfo.template_id,
@@ -118,7 +118,7 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
         console.log("Erro interno:", err);
         console.error("Erro interno:", err);
         return new Response(
-            JSON.stringify({ status: 500, message: "Erro inesperado no servidor." }),
+            JSON.stringify({ status: 500, message: "Erro inesperado no servidor.", logTemp: err }),
             { status: 500, headers: jsonHeader }
         );
     }
