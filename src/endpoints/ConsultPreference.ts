@@ -1,6 +1,12 @@
 import type { Env } from "../index";
 
 export async function ConsultIntention(request: Request, env: Env): Promise<Response> {
+    const jsonHeader = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "OPTIONS, GET",
+        "Access-Control-Allow-Headers": "Content-Type"
+    };
     try {
         const uri = new URL(request.url);
 
@@ -30,24 +36,24 @@ export async function ConsultIntention(request: Request, env: Env): Promise<Resp
 
             const filteredResults = result.results.map(({ intention_id, status, preference_id }) => ({
                 intention_id,
-                status,preference_id
+                status, preference_id
             }));
             return new Response(JSON.stringify(filteredResults), {
                 status: 200,
-                headers: { "Content-Type": "application/json" },
+                headers: jsonHeader,
             });
         }
 
         return new Response(
             JSON.stringify({ status: 400, message: "Parametros da requisição malformados." }),
-            { status: 400, headers: { "Content-Type": "application/json" } }
+            { status: 400, headers: jsonHeader }
         );
     }
     catch (err) {
         console.error("Erro interno:", err);
         return new Response(
             JSON.stringify({ status: 500, message: "Erro inesperado no servidor." }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
+            { status: 500, headers: jsonHeader }
         );
     }
 

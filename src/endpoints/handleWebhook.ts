@@ -12,7 +12,12 @@ interface PaymentData {
 }
 
 export async function handleWebhook(request: Request, env: Env): Promise<Response> {
-  const jsonHeader = { "Content-Type": "application/json" };
+  const jsonHeader = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+  };
 
   let body: WebhookBody;
   try {
@@ -34,7 +39,7 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
   });
 
   if (!paymentRes.ok) {
-    const errorText = await paymentRes.text();    
+    const errorText = await paymentRes.text();
     console.error("Erro ao buscar pagamento:", errorText);
     return new Response(JSON.stringify({ message: "Erro ao buscar pagamento", error: errorText }), {
       status: paymentRes.status,
@@ -82,7 +87,7 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
     });
   }
   const templateTable = result.template_id;
-  
+
   await env.DB.prepare(`
     UPDATE ${templateTable}
     SET status = 'approved'

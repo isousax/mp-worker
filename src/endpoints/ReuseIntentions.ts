@@ -12,7 +12,12 @@ interface intencionInfo {
 }
 
 export async function ReuseIntentions(request: Request, env: Env): Promise<Response> {
-    const jsonHeader = { "Content-Type": "application/json" };
+    const jsonHeader = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, GET",
+        "Access-Control-Allow-Headers": "Content-Type"
+    };
     try {
         let body: PreferenceRequestBody;
 

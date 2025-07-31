@@ -18,7 +18,12 @@ interface PreferenceRequestBody {
 }
 
 export async function handleCreatePreference(request: Request, env: Env): Promise<Response> {
-    const jsonHeader = { "Content-Type": "application/json" };
+    const jsonHeader = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+    };
     try {
         let body: PreferenceRequestBody;
 
@@ -39,85 +44,85 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
         }
 
 
-    const intentionId = nanoId(10, 'P-');
-    const finalSiteUrl = `https://${env.SITE_DNS}/site/${intentionId}`;
-    const createdAt = new Date().toISOString();
+        const intentionId = nanoId(10, 'P-');
+        const finalSiteUrl = `https://${env.SITE_DNS}/site/${intentionId}`;
+        const createdAt = new Date().toISOString();
 
-    const preference = {
-        items: [
-            {
-                id: body.productInfo.template_id,
-                title: planLabels(body.productInfo.title),
-                quantity: 1,
-                unit_price: body.productInfo.price,
-                currency_id: body.productInfo.currency_id,
-                picture_url: body.productInfo.picture_url,
-                category_id: "virtual_goods",
-                description: `Intenção de compra de site dedicatório, no plano ${planLabels}.`,
+        const preference = {
+            items: [
+                {
+                    id: body.productInfo.template_id,
+                    title: planLabels(body.productInfo.title),
+                    quantity: 1,
+                    unit_price: body.productInfo.price,
+                    currency_id: body.productInfo.currency_id,
+                    picture_url: body.productInfo.picture_url,
+                    category_id: "virtual_goods",
+                    description: `Intenção de compra de site dedicatório, no plano ${planLabels}.`,
+                },
+            ],
+            payer: {
+                email: body.payer.email,
             },
-        ],
-        payer: {
-            email: body.payer.email,
-        },
-        back_urls: {
-            success: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/success`,
-            failure: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/failure`,
-            pending: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/pending`,
-        },
-        notification_url: `${env.MP_WEBHOOK_URL}`,
-        auto_return: "approved",
-        external_reference: intentionId,
-    };
-    console.log("Criando preference:", JSON.stringify(preference, null, 2));
+            back_urls: {
+                success: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/success`,
+                failure: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/failure`,
+                pending: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/pending`,
+            },
+            notification_url: `${env.MP_WEBHOOK_URL}`,
+            auto_return: "approved",
+            external_reference: intentionId,
+        };
+        console.log("Criando preference:", JSON.stringify(preference, null, 2));
 
-    const responseMP = await fetch("https://api.mercadopago.com/checkout/preferences", {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(preference),
-    });
+        const responseMP = await fetch("https://api.mercadopago.com/checkout/preferences", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(preference),
+        });
 
-    if (!responseMP.ok) {
-        const errorText = await responseMP.text();
-        return new Response(
-            JSON.stringify({ status: responseMP.status, message: `Erro na criação da preference: ${errorText}` }),
-            { status: responseMP.status, headers: jsonHeader });
-    }
+        if (!responseMP.ok) {
+            const errorText = await responseMP.text();
+            return new Response(
+                JSON.stringify({ status: responseMP.status, message: `Erro na criação da preference: ${errorText}` }),
+                { status: responseMP.status, headers: jsonHeader });
+        }
 
-    const dataResponseMP = await responseMP.json() as { id: string; init_point: string };
+        const dataResponseMP = await responseMP.json() as { id: string; init_point: string };
 
-    const sqlIntention = `
+        const sqlIntention = `
         INSERT INTO intentions (intention_id, email, template_id, plan, price, preference_id, final_url, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
-    await env.DB.prepare(sqlIntention).bind(
-        intentionId,
-        body.payer.email,
-        body.productInfo.template_id,
-        body.productInfo.plan,
-        body.productInfo.price,
-        dataResponseMP.id,
-        finalSiteUrl,
-        createdAt
-    ).run();
+        await env.DB.prepare(sqlIntention).bind(
+            intentionId,
+            body.payer.email,
+            body.productInfo.template_id,
+            body.productInfo.plan,
+            body.productInfo.price,
+            dataResponseMP.id,
+            finalSiteUrl,
+            createdAt
+        ).run();
 
-    const sqlModel = `
+        const sqlModel = `
         INSERT INTO ${body.productInfo.template_id} (intention_id, email, form_data, created_at)
         VALUES (?, ?, ?, ?)
     `;
-    await env.DB.prepare(sqlModel).bind(
-        intentionId,
-        body.payer.email,
-        JSON.stringify(body.form_data),
-        createdAt
-    ).run();
+        await env.DB.prepare(sqlModel).bind(
+            intentionId,
+            body.payer.email,
+            JSON.stringify(body.form_data),
+            createdAt
+        ).run();
 
-    return new Response(JSON.stringify({ id: dataResponseMP.id, init_point: dataResponseMP.init_point }), {
-        headers: jsonHeader,
-        status: 200,
-    });
+        return new Response(JSON.stringify({ id: dataResponseMP.id, init_point: dataResponseMP.init_point }), {
+            headers: jsonHeader,
+            status: 200,
+        });
     } catch (err) {
         console.error("Erro interno:", err);
         return new Response(
