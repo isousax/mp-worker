@@ -12,11 +12,18 @@ interface PaymentData {
 }
 
 export async function handleWebhook(request: Request, env: Env): Promise<Response> {
-  const body = await request.json() as WebhookBody;
+  const jsonHeader = { "Content-Type": "application/json" };
+
+  let body: WebhookBody;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ message: "JSON inválido" }), { status: 400, headers: jsonHeader });
+  }
 
   const paymentId = body?.data?.id;
   if (!paymentId) {
-    return new Response("Missing payment ID", { status: 400 });
+    return new Response(JSON.stringify({ message: "ID do pagamento ausente" }), { status: 400, headers: jsonHeader });
   }
 
   const paymentRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -26,24 +33,63 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
   });
 
   if (!paymentRes.ok) {
-    return new Response(await paymentRes.text(), { status: paymentRes.status });
+    const errorText = await paymentRes.text();
+    return new Response(JSON.stringify({ message: "Erro ao buscar pagamento", error: errorText }), {
+      status: paymentRes.status,
+      headers: jsonHeader,
+    });
   }
 
   const paymentData = await paymentRes.json() as PaymentData;
+  const { status, external_reference: intentionId } = paymentData;
 
-  if (paymentData.status !== "approved") {
-    return new Response("Payment not approved", { status: 200 });
+  if (!intentionId) {
+    return new Response(JSON.stringify({ message: "Referência externa ausente." }), { status: 400, headers: jsonHeader });
   }
 
-  const intentionId = paymentData.external_reference;
+  if (status !== "approved") {
+    return new Response(JSON.stringify({ message: "Pagamento não aprovado." }), {
+      status: 200,
+      headers: jsonHeader,
+    });
+  }
 
   await env.DB.prepare(`
     UPDATE intentions
     SET status = 'approved'
-    WHERE id = ?
-  `).bind(
-    intentionId
-  ).run();
+    WHERE intention_id = ?
+  `).bind(intentionId).run();
 
-  return new Response("OK", { status: 200 });
+  const result = await env.DB.prepare(`
+    SELECT template_id
+    FROM intentions
+    WHERE intention_id = ?
+  `).bind(intentionId).first();
+
+  if (!result.template_id) {
+    return new Response(JSON.stringify({ message: "Intenção não encontrada." }), {
+      status: 404,
+      headers: jsonHeader,
+    });
+  }
+
+  // ⚠️ Segurança extra: valide se o template_id é um nome de tabela permitido
+  if (typeof result.template_id !== "string" || !/^[a-z_]+$/.test(result.template_id)) {
+    return new Response(JSON.stringify({ message: "Nome de template inválido" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const templateTable = result.template_id;
+  
+  await env.DB.prepare(`
+    UPDATE ${templateTable}
+    SET status = 'approved'
+    WHERE intention_id = ?
+  `).bind(intentionId).run();
+
+  return new Response(JSON.stringify({ message: "Pagamento aprovado." }), {
+    status: 200,
+    headers: jsonHeader,
+  });
 }

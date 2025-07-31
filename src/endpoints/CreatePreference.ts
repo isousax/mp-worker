@@ -58,9 +58,9 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
             email: body.payer.email,
         },
         back_urls: {
-            success: `https://${env.SITE_DNS}/models/${body.productInfo.template_id}/sucesso`,
-            failure: `https://${env.SITE_DNS}/models/${body.productInfo.template_id}/falha`,
-            pending: `https://${env.SITE_DNS}/models/${body.productInfo.template_id}/pendente`,
+            success: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/success`,
+            failure: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/failure`,
+            pending: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/pending`,
         },
         auto_return: "approved",
         external_reference: intentionId,
