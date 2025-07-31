@@ -101,7 +101,7 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 
     const sqlModel = `
         INSERT INTO ${body.productInfo.template_id} (intention_id, email, form_data, created_at)
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?)
     `;
     await env.DB.prepare(sqlModel).bind(
         intentionId,
