@@ -12,15 +12,7 @@ CREATE TABLE IF NOT EXISTS intentions (
   updated_at TEXT
 );
 
--- Tabela de pagamentos vinculada à intenção
-CREATE TABLE IF NOT EXISTS payments (
-  preference_id TEXT PRIMARY KEY,              -- ID único gerado pelo Mercado Pago
-  intention_id TEXT NOT NULL,                  -- FK para a intenção
-  status TEXT NOT NULL,                        -- 'approved', 'rejected', 'cancelled', 'expired'
-  created_at TEXT NOT NULL,
-  updated_at TEXT,
-  FOREIGN KEY (intention_id) REFERENCES intentions(intention_id) ON DELETE CASCADE
-);
+DROP TABLE IF EXISTS nossa_historia;
 
 -- Tabela de dados específicos do template "Nossa História"
 CREATE TABLE IF NOT EXISTS nossa_historia (

@@ -31,6 +31,15 @@ export default {
       return await handleWebhook(request, env);
     }
 
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
+          "Access-Control-Allow-Headers": "Content-Type"
+        }
+      });
+    }
 
     return new Response(
       JSON.stringify({ status: 404, message: "Not Found." }),
