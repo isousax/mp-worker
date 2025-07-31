@@ -52,6 +52,8 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
                 unit_price: body.productInfo.price,
                 currency_id: body.productInfo.currency_id,
                 picture_url: body.productInfo.picture_url,
+                category_id: "virtual_goods",
+                description: `Intenção de compra de site dedicatório, no plano ${planLabels}.`,
             },
         ],
         payer: {
@@ -66,6 +68,7 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
         auto_return: "approved",
         external_reference: intentionId,
     };
+    console.log("Criando preference:", JSON.stringify(preference, null, 2));
 
     const responseMP = await fetch("https://api.mercadopago.com/checkout/preferences", {
         method: "POST",
@@ -129,7 +132,7 @@ function isValidBody(body: PreferenceRequestBody): boolean {
     const payer = body.payer;
     return !!(
         isValidEmail(payer.email) &&
-        isNonEmpty(product.template_id) &&
+        isValidTemplate(product.template_id) &&
         isNonEmpty(product.plan) &&
         isNonEmpty(product.title) &&
         isNonEmpty(product.currency_id) &&
@@ -139,6 +142,9 @@ function isValidBody(body: PreferenceRequestBody): boolean {
 }
 function isValidEmail(email: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+function isValidTemplate(templateId: string): boolean {
+    return /^[a-z_]+$/.test(templateId);
 }
 function isNonEmpty(str: string | undefined): boolean {
     return typeof str === 'string' && str.trim().length > 0;

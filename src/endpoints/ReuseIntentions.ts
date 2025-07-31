@@ -51,7 +51,8 @@ export async function ReuseIntentions(request: Request, env: Env): Promise<Respo
                     id: existingIntention.template_id,
                     title: planLabels(existingIntention.plan),
                     quantity: 1,
-                    unit_price: existingIntention.price
+                    unit_price: existingIntention.price,
+                    virtual_goods: "virtual_goods",
                 },
             ],
             payer: {

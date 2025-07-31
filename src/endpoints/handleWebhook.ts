@@ -21,7 +21,7 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
     return new Response(JSON.stringify({ message: "JSON inválido" }), { status: 400, headers: jsonHeader });
   }
 
-  const paymentId = body?.data?.id;
+  const paymentId = body.data.id;
   if (!paymentId) {
     return new Response(JSON.stringify({ message: "ID do pagamento ausente" }), { status: 400, headers: jsonHeader });
   }
@@ -75,7 +75,6 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
     });
   }
 
-  // ⚠️ Segurança extra: valide se o template_id é um nome de tabela permitido
   if (typeof result.template_id !== "string" || !/^[a-z_]+$/.test(result.template_id)) {
     return new Response(JSON.stringify({ message: "Nome de template inválido" }), {
       status: 400,
