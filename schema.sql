@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS payments (
 -- Tabela de dados específicos do template "Nossa História"
 CREATE TABLE IF NOT EXISTS nossa_historia (
   intention_id TEXT PRIMARY KEY,               -- mesmo ID da intenção
+  email TEXT NOT NULL,
   form_data TEXT NOT NULL,                     -- JSON com todos os dados do template
   created_at TEXT NOT NULL,
   FOREIGN KEY (intention_id) REFERENCES intentions(intention_id) ON DELETE CASCADE
