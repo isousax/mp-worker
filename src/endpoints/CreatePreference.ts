@@ -52,13 +52,13 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
             items: [
                 {
                     id: body.productInfo.template_id,
-                    title: planLabels(body.productInfo.title),
+                    title: planLabels(body.productInfo.plan),
                     quantity: 1,
                     unit_price: body.productInfo.price,
                     currency_id: body.productInfo.currency_id,
                     picture_url: body.productInfo.picture_url,
                     category_id: "virtual_goods",
-                    description: `Intenção de compra de site dedicatório, no plano ${planLabels}.`,
+                    description: `Intenção de compra de site dedicatório, no ${planLabels(body.productInfo.plan)}.`,
                 },
             ],
             payer: {
