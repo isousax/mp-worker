@@ -63,6 +63,7 @@ export async function ReuseIntentions(request: Request, env: Env): Promise<Respo
                 pending: `https://${env.SITE_DNS}/models/${existingIntention.template_id}/pendente`,
             },
             auto_return: "approved",
+            notification_url: `${env.MP_WEBHOOK_URL}`,
             external_reference: intentionId,
         };
 
@@ -125,5 +126,5 @@ function updatePreferenceId(env: Env, preferenceId: string, intentionId: string,
     return env.DB.prepare(sql)
         .bind(preferenceId, updatedAt, intentionId)
         .run()
-        .then(() => {});
+        .then(() => { });
 }

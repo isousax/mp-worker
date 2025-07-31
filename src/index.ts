@@ -7,6 +7,7 @@ import { handleWebhook } from "./endpoints/handleWebhook";
 export interface Env {
   MP_ACCESS_TOKEN: string;
   SITE_DNS: string;
+  MP_WEBHOOK_URL: string;
   DB: D1Database;
 }
 

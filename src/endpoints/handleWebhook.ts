@@ -27,13 +27,15 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
   }
 
   const paymentRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+    method: "GET",
     headers: {
       Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`,
     },
   });
 
   if (!paymentRes.ok) {
-    const errorText = await paymentRes.text();
+    const errorText = await paymentRes.text();    
+    console.error("Erro ao buscar pagamento:", errorText);
     return new Response(JSON.stringify({ message: "Erro ao buscar pagamento", error: errorText }), {
       status: paymentRes.status,
       headers: jsonHeader,
