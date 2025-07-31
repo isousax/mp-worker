@@ -84,11 +84,11 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
 
     const dataResponseMP = await responseMP.json() as { id: string; init_point: string };
 
-    const sql = `
+    const sqlIntention = `
         INSERT INTO intentions (intention_id, email, template_id, plan, price, preference_id, final_url, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
-    await env.DB.prepare(sql).bind(
+    await env.DB.prepare(sqlIntention).bind(
         intentionId,
         body.payer.email,
         body.productInfo.template_id,
@@ -99,14 +99,22 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
         createdAt
     ).run();
 
-    await saveDataModel(env, intentionId, body, createdAt);
+    const sqlModel = `
+        INSERT INTO ${body.productInfo.template_id} (intention_id, email, form_data, created_at)
+        VALUES (?, ?, ?)
+    `;
+    await env.DB.prepare(sqlModel).bind(
+        intentionId,
+        body.payer.email,
+        JSON.stringify(body.form_data),
+        createdAt
+    ).run();
 
     return new Response(JSON.stringify({ id: dataResponseMP.id, init_point: dataResponseMP.init_point }), {
         headers: jsonHeader,
         status: 200,
     });
     } catch (err) {
-        console.log("Erro interno:", err);
         console.error("Erro interno:", err);
         return new Response(
             JSON.stringify({ status: 500, message: "Erro inesperado no servidor." }),
@@ -133,17 +141,4 @@ function isValidEmail(email: string): boolean {
 }
 function isNonEmpty(str: string | undefined): boolean {
     return typeof str === 'string' && str.trim().length > 0;
-}
-
-function saveDataModel(env: Env, intentionId: string, body: PreferenceRequestBody, createdAt: string): void {
-    const sql = `
-        INSERT INTO ${body.productInfo.template_id} (intention_id, email, form_data, created_at)
-        VALUES (?, ?, ?)
-    `;
-    env.DB.prepare(sql).bind(
-        intentionId,
-        body.payer.email,
-        JSON.stringify(body.form_data),
-        createdAt
-    ).run();
 }
