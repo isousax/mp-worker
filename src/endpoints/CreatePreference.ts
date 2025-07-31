@@ -99,7 +99,7 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
         createdAt
     ).run();
 
-    saveDataModel(env, intentionId, body, createdAt);
+    await saveDataModel(env, intentionId, body, createdAt);
 
     return new Response(JSON.stringify({ id: dataResponseMP.id, init_point: dataResponseMP.init_point }), {
         headers: jsonHeader,

@@ -20,8 +20,10 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
   }
 
   const paymentRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+    method: "GET",
     headers: {
       Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
     },
   });
 
