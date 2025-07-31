@@ -65,9 +65,9 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
                 email: body.payer.email,
             },
             back_urls: {
-                success: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/success`,
+                success: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/status`,
                 failure: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/failure`,
-                pending: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/pending`,
+                pending: `https://${env.SITE_DNS}/checkout/${body.productInfo.template_id}/status`,
             },
             notification_url: `${env.MP_WEBHOOK_URL}`,
             auto_return: "approved",
