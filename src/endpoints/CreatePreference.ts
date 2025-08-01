@@ -58,7 +58,7 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
                     currency_id: body.productInfo.currency_id,
                     picture_url: body.productInfo.picture_url,
                     category_id: "virtual_goods",
-                    description: `Intenção de compra de site dedicatório, no ${planLabels(body.productInfo.plan)}.`,
+                    description: "Site dedicatório",
                     statement_descriptor: "DEDICART",
                 },
             ],

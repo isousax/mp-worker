@@ -19,17 +19,29 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
     "Access-Control-Allow-Headers": "Content-Type"
   };
 
-  let body: WebhookBody;
-  try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ message: "JSON inválido" }), { status: 400, headers: jsonHeader });
+  let paymentId: string | null = null;
+
+  const url = new URL(request.url);
+  paymentId = url.searchParams.get("id");
+
+  if (!paymentId) {
+    try {
+      const body = await request.json() as WebhookBody;
+      
+      paymentId = body.data.id;
+
+    } catch (err) {
+      console.warn("Erro ao fazer parse do JSON do webhook:", err);
+    }
   }
 
-  const paymentId = body.data.id;
   if (!paymentId) {
-    return new Response(JSON.stringify({ message: "ID do pagamento ausente" }), { status: 400, headers: jsonHeader });
+    return new Response(JSON.stringify({ message: "ID do pagamento ausente" }), {
+      status: 400,
+      headers: jsonHeader,
+    });
   }
+
 
   const paymentRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     method: "GET",
