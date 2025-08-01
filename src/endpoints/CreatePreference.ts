@@ -74,7 +74,7 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
             auto_return: "approved",
             external_reference: intentionId,
         };
-        console.log("Criando preference:", JSON.stringify(preference, null, 2));
+        console.info("Criando preference:", JSON.stringify(preference, null, 2));
 
         const responseMP = await fetch("https://api.mercadopago.com/checkout/preferences", {
             method: "POST",
