@@ -1,4 +1,5 @@
 import type { D1Database } from "@cloudflare/workers-types";
+import type { R2Bucket } from "@cloudflare/workers-types";
 import { CreatePreference } from "./endpoints/CreatePreference";
 import { handleWebhook } from "./endpoints/handleWebhook";
 import { ConsultPaymentStatus } from "./endpoints/ConsultPaymentStatus";
@@ -7,8 +8,10 @@ export interface Env {
   MP_ACCESS_TOKEN: string;
   SITE_DNS: string;
   MP_WEBHOOK_URL: string;
+  WORKER_DNS: string;
   PREFIX_ID: string;
   DB: D1Database;
+  R2: R2Bucket;
 }
 
 export default {

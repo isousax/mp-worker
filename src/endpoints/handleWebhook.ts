@@ -1,4 +1,5 @@
 import type { Env } from "../index";
+import { moveAndUpdateImages } from "../service/imageManager";
 
 interface WebhookBody {
   resource?: string;
@@ -15,7 +16,6 @@ interface PaymentData {
 }
 
 export async function handleWebhook(request: Request, env: Env): Promise<Response> {
-
   const jsonHeader = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
@@ -98,44 +98,28 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
 
     await env.DB.prepare(`
       UPDATE intentions
-      SET status = 'approved'
+      SET status = 'approved', updated_at = datetime('now')
       WHERE intention_id = ?
     `).bind(intentionId).run();
 
-    const result = await env.DB.prepare(`
-      SELECT template_id
-      FROM intentions
-      WHERE intention_id = ?
-    `).bind(intentionId).first();
-
-    if (!result || !result.template_id) {
-      return new Response(JSON.stringify({ message: "Intenção não encontrada." }), {
-        status: 404,
+    try {
+      const report = await moveAndUpdateImages(env, intentionId);
+      console.info(`Relatório do moveAndUpdateImages para intenção ${intentionId}:`, JSON.stringify(report, null, 2));
+    } catch (err) {
+      console.error("Erro no move das imagens ou atualização do banco:", err);
+      return new Response(JSON.stringify({ message: "Erro interno no processamento pós-pagamento." }), {
+        status: 500,
         headers: jsonHeader,
       });
     }
 
-    if (typeof result.template_id !== "string" || !/^[a-z_]+$/.test(result.template_id)) {
-      console.warn(`Template ID inválido: ${result.template_id}`);
-      return new Response(JSON.stringify({ message: "Nome de template inválido" }), {
-        status: 400,
-        headers: jsonHeader,
-      });
-    }
+    console.info(`Pagamento aprovado e imagens movidas para intenção ${intentionId}`);
 
-    await env.DB.prepare(`
-      UPDATE ${result.template_id}
-      SET status = 'approved'
-      WHERE intention_id = ?
-    `).bind(intentionId).run();
-
-    console.info(`Pagamento aprovado para a intenção ${intentionId} no template ${result.template_id}`);
-    return new Response(JSON.stringify({ message: "Pagamento aprovado." }), {
+    return new Response(JSON.stringify({ message: "Pagamento aprovado e processado com sucesso." }), {
       status: 200,
       headers: jsonHeader,
     });
-  }
-  else {
+  } else {
     console.warn(`Webhook ignorado. type="${body.type}", topic="${body.topic}", id=${body.data?.id}`);
     return new Response(JSON.stringify({ message: "OK" }), { status: 200, headers: jsonHeader });
   }
