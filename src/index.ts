@@ -7,6 +7,7 @@ export interface Env {
   MP_ACCESS_TOKEN: string;
   SITE_DNS: string;
   MP_WEBHOOK_URL: string;
+  PREFIX_ID: string;
   DB: D1Database;
 }
 

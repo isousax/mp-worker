@@ -44,7 +44,7 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
         }
 
 
-        const intentionId = nanoId(10, 'P-');
+        const intentionId = nanoId(10, env.PREFIX_ID);
         const finalSiteUrl = `https://${env.SITE_DNS}/site/${intentionId}`;
         const createdAt = new Date().toISOString();
 
@@ -74,7 +74,6 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
             auto_return: "approved",
             external_reference: intentionId,
         };
-        console.info("Criando preference:", JSON.stringify(preference, null, 2));
 
         const responseMP = await fetch("https://api.mercadopago.com/checkout/preferences", {
             method: "POST",
@@ -87,8 +86,9 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
 
         if (!responseMP.ok) {
             const errorText = await responseMP.text();
+            console.error("Erro ao criar preferencia de pagamento:", responseMP.status, errorText);
             return new Response(
-                JSON.stringify({ status: responseMP.status, message: `Erro na criação da preference: ${errorText}` }),
+                JSON.stringify({ status: responseMP.status, message: `Erro na criação da preferencia de pagamento.` }),
                 { status: responseMP.status, headers: jsonHeader });
         }
 

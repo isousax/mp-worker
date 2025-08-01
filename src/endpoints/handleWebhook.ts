@@ -15,7 +15,6 @@ interface PaymentData {
 }
 
 export async function handleWebhook(request: Request, env: Env): Promise<Response> {
-  console.info("Recebendo webhook do Mercado Pago");
 
   const jsonHeader = {
     "Content-Type": "application/json",
@@ -88,8 +87,6 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
       `).bind(paymentId, intentionId).run();
 
       console.info(`Payment ID atualizado para intenção ${intentionId}`);
-    } else {
-      console.info(`Payment ID já definido para intenção ${intentionId}`);
     }
 
     if (status !== "approved") {
@@ -119,6 +116,7 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
     }
 
     if (typeof result.template_id !== "string" || !/^[a-z_]+$/.test(result.template_id)) {
+      console.warn(`Template ID inválido: ${result.template_id}`);
       return new Response(JSON.stringify({ message: "Nome de template inválido" }), {
         status: 400,
         headers: jsonHeader,

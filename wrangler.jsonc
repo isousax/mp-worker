@@ -8,6 +8,7 @@
 	},
 	"vars": {
 		"SITE_DNS": "dedicart.com.br",
+		"PREFIX_ID": "P-",
 		"MP_WEBHOOK_URL": "https://dedicart-mp-worker.dedicart.workers.dev/webhook",
 	},
 	"d1_databases": [

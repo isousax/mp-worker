@@ -23,12 +23,14 @@ export async function ConsultPaymentStatus(request: Request, env: Env): Promise<
       const intention = await env.DB.prepare(sql).bind(paymentId).first();
 
       if (!intention) {
+        console.info("Pagamento não encontrado.");
         return new Response(
           JSON.stringify({ message: "Pagamento não encontrado." }),
           { status: 404, headers: jsonHeader }
         );
       }
 
+      console.info("Status do pagamento: ", intention.status);
       return new Response(
         JSON.stringify({ status: intention.status }),
         { status: 200, headers: jsonHeader }
