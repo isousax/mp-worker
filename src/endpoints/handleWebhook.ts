@@ -20,9 +20,9 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
   const jsonHeader = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "POST",
     "Access-Control-Allow-Headers": "Content-Type"
-  };;
+  };
 
   let body: WebhookBody;
   try {
@@ -70,6 +70,28 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
       return new Response(JSON.stringify({ message: "Referência externa ausente." }), { status: 400, headers: jsonHeader });
     }
 
+    const intentionRecord = await env.DB.prepare(`
+      SELECT payment_id
+      FROM intentions
+      WHERE intention_id = ?
+    `).bind(intentionId).first();
+
+    if (!intentionRecord) {
+      return new Response(JSON.stringify({ message: "Intenção não encontrada." }), { status: 404, headers: jsonHeader });
+    }
+
+    if (!intentionRecord.payment_id) {
+      await env.DB.prepare(`
+        UPDATE intentions
+        SET payment_id = ?
+        WHERE intention_id = ?
+      `).bind(paymentId, intentionId).run();
+
+      console.info(`Payment ID atualizado para intenção ${intentionId}`);
+    } else {
+      console.info(`Payment ID já definido para intenção ${intentionId}`);
+    }
+
     if (status !== "approved") {
       return new Response(JSON.stringify({ message: "Pagamento não aprovado." }), {
         status: 200,
@@ -78,18 +100,18 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
     }
 
     await env.DB.prepare(`
-    UPDATE intentions
-    SET status = 'approved'
-    WHERE intention_id = ?
-  `).bind(intentionId).run();
+      UPDATE intentions
+      SET status = 'approved'
+      WHERE intention_id = ?
+    `).bind(intentionId).run();
 
     const result = await env.DB.prepare(`
-    SELECT template_id
-    FROM intentions
-    WHERE intention_id = ?
-  `).bind(intentionId).first();
+      SELECT template_id
+      FROM intentions
+      WHERE intention_id = ?
+    `).bind(intentionId).first();
 
-    if (!result.template_id) {
+    if (!result || !result.template_id) {
       return new Response(JSON.stringify({ message: "Intenção não encontrada." }), {
         status: 404,
         headers: jsonHeader,
@@ -99,17 +121,17 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
     if (typeof result.template_id !== "string" || !/^[a-z_]+$/.test(result.template_id)) {
       return new Response(JSON.stringify({ message: "Nome de template inválido" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeader,
       });
     }
-    const templateTable = result.template_id;
 
     await env.DB.prepare(`
-    UPDATE ${templateTable}
-    SET status = 'approved'
-    WHERE intention_id = ?
-  `).bind(intentionId).run();
+      UPDATE ${result.template_id}
+      SET status = 'approved'
+      WHERE intention_id = ?
+    `).bind(intentionId).run();
 
+    console.info(`Pagamento aprovado para a intenção ${intentionId} no template ${result.template_id}`);
     return new Response(JSON.stringify({ message: "Pagamento aprovado." }), {
       status: 200,
       headers: jsonHeader,

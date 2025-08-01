@@ -1,18 +1,16 @@
 -- Tabela principal de intenções de compra/pedido
-CREATE TABLE IF NOT EXISTS intentions (
-  intention_id TEXT PRIMARY KEY,               -- nanoid da intenção
-  email TEXT NOT NULL,
-  template_id TEXT NOT NULL,                   -- ex: 'nossa_historia'
-  plan TEXT NOT NULL,                          -- ex: 'standard', 'premium'
-  price NUMBER NOT NULL,                       -- você pode usar TEXT por simplicidade (ex: '19.90')
-  preference_id TEXT,                          -- identifica a preferência do Mercado Pago
-  status TEXT DEFAULT 'pending',               -- 'pending', 'approved', 'cancelled', etc.
-  final_url TEXT NOT NULL,                     -- onde acessar o site gerado
-  created_at TEXT NOT NULL,
-  updated_at TEXT
-);
-
-DROP TABLE IF EXISTS nossa_historia;
+  CREATE TABLE IF NOT EXISTS intentions (
+    intention_id TEXT PRIMARY KEY,               -- nanoid da intenção
+    email TEXT NOT NULL,
+    template_id TEXT NOT NULL,                   -- ex: 'nossa_historia'
+    plan TEXT NOT NULL,                          -- ex: 'standard', 'premium'
+    price NUMBER NOT NULL,                       -- você pode usar TEXT por simplicidade (ex: '19.90')
+    payment_id TEXT UNIQUE,                             -- identifica o pagamento do Mercado Pago
+    status TEXT DEFAULT 'pending',               -- 'pending', 'approved', 'cancelled', etc.
+    final_url TEXT NOT NULL,                     -- onde acessar o site gerado
+    created_at TEXT NOT NULL,
+    updated_at TEXT
+  );
 
 -- Tabela de dados específicos do template "Nossa História"
 CREATE TABLE IF NOT EXISTS nossa_historia (

@@ -1,8 +1,7 @@
 import type { D1Database } from "@cloudflare/workers-types";
-import { handleCreatePreference } from "./endpoints/CreatePreference";
-import { ConsultIntention } from "./endpoints/ConsultPreference";
-import { ReuseIntentions } from "./endpoints/ReuseIntentions";
+import { CreatePreference } from "./endpoints/CreatePreference";
 import { handleWebhook } from "./endpoints/handleWebhook";
+import { ConsultPaymentStatus } from "./endpoints/ConsultPaymentStatus";
 
 export interface Env {
   MP_ACCESS_TOKEN: string;
@@ -16,17 +15,22 @@ export default {
     const { pathname } = new URL(request.url);
 
     if (request.method === "POST" && pathname === "/preference/create") {
-      return await handleCreatePreference(request, env);
+      return await CreatePreference(request, env);
     }
     /* 
-     * if (request.method === "POST" && pathname === "/intentions/reuse") {
-     *   return await ReuseIntentions(request, env);
-     * }
-    */
+     if (request.method === "POST" && pathname === "/intentions/reuse") {
+       return await ReuseIntentions(request, env);
+     }
+    
     if (request.method === "GET" && pathname === "/intentions") {
       return await ConsultIntention(request, env);
 
     }
+    */
+   if (request.method === "GET" && pathname === "/consult-payment-status") {
+      return await ConsultPaymentStatus(request, env);
+    }
+
     if (request.method === "POST" && pathname === "/webhook") {
       return await handleWebhook(request, env);
     }

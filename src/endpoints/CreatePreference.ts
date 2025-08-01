@@ -17,11 +17,11 @@ interface PreferenceRequestBody {
     form_data: Record<string, any>;
 }
 
-export async function handleCreatePreference(request: Request, env: Env): Promise<Response> {
+export async function CreatePreference(request: Request, env: Env): Promise<Response> {
     const jsonHeader = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "POST",
         "Access-Control-Allow-Headers": "Content-Type"
     };
     try {
@@ -92,11 +92,9 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
                 { status: responseMP.status, headers: jsonHeader });
         }
 
-        const dataResponseMP = await responseMP.json() as { id: string; init_point: string };
-
         const sqlIntention = `
-        INSERT INTO intentions (intention_id, email, template_id, plan, price, preference_id, final_url, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO intentions (intention_id, email, template_id, plan, price, final_url, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         `;
         await env.DB.prepare(sqlIntention).bind(
             intentionId,
@@ -104,7 +102,6 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
             body.productInfo.template_id,
             body.productInfo.plan,
             body.productInfo.price,
-            dataResponseMP.id,
             finalSiteUrl,
             createdAt
         ).run();
@@ -119,6 +116,8 @@ export async function handleCreatePreference(request: Request, env: Env): Promis
             JSON.stringify(body.form_data),
             createdAt
         ).run();
+
+        const dataResponseMP = await responseMP.json() as { id: string; init_point: string };
 
         return new Response(JSON.stringify({ id: dataResponseMP.id, init_point: dataResponseMP.init_point }), {
             headers: jsonHeader,
