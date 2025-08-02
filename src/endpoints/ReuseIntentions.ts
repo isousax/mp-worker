@@ -25,14 +25,14 @@ export async function ReuseIntentions(request: Request, env: Env): Promise<Respo
             body = await request.json();
         } catch {
             return new Response(
-                JSON.stringify({ status: 400, message: "Corpo da requisição malformado." }),
+                JSON.stringify({ message: "Corpo da requisição malformado." }),
                 { status: 400, headers: jsonHeader }
             );
         }
 
         if (!isNonEmpty(body.intention_id)) {
             return new Response(
-                JSON.stringify({ status: 400, message: "Corpo da requisição malformado." }),
+                JSON.stringify({ message: "Corpo da requisição malformado." }),
                 { status: 400, headers: jsonHeader }
             );
         }
@@ -45,7 +45,7 @@ export async function ReuseIntentions(request: Request, env: Env): Promise<Respo
 
         if (!existingIntention) {
             return new Response(
-                JSON.stringify({ status: 404, message: "Intenção de pagamento não encontrada." }),
+                JSON.stringify({ message: "Intenção de pagamento não encontrada." }),
                 { status: 404, headers: jsonHeader }
             );
         }
@@ -85,7 +85,7 @@ export async function ReuseIntentions(request: Request, env: Env): Promise<Respo
         if (!responseMP.ok) {
             const errorText = await responseMP.text();
             return new Response(
-                JSON.stringify({ status: responseMP.status, message: `Erro na criação da preference: ${errorText}` }),
+                JSON.stringify({ message: `Erro na criação da preference: ${errorText}` }),
                 { status: responseMP.status, headers: jsonHeader });
         }
 
@@ -98,10 +98,9 @@ export async function ReuseIntentions(request: Request, env: Env): Promise<Respo
             status: 200,
         });
     } catch (err) {
-        console.log("Erro interno:", err);
         console.error("Erro interno:", err);
         return new Response(
-            JSON.stringify({ status: 500, message: "Erro inesperado no servidor." }),
+            JSON.stringify({ message: "Erro inesperado no servidor." }),
             { status: 500, headers: jsonHeader }
         );
     }

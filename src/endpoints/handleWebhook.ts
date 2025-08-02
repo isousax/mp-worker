@@ -104,9 +104,9 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
 
     try {
       const report = await moveAndUpdateImages(env, intentionId);
-      console.info(`Relatório do moveAndUpdateImages para intenção ${intentionId}:`, JSON.stringify(report, null, 2));
+      console.info(`Relatório de movimentação de imagens para intenção ${intentionId}:`, JSON.stringify(report, null, 2));
     } catch (err) {
-      console.error("Erro no move das imagens ou atualização do banco:", err);
+      console.error("Erro ao movimentar imagens ou atualização do banco:", err);
       return new Response(JSON.stringify({ message: "Erro interno no processamento pós-pagamento." }), {
         status: 500,
         headers: jsonHeader,

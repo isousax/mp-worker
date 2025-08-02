@@ -31,14 +31,14 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
             body = await request.json();
         } catch {
             return new Response(
-                JSON.stringify({ status: 400, message: "Corpo da requisição malformado." }),
+                JSON.stringify({ message: "Corpo da requisição malformado." }),
                 { status: 400, headers: jsonHeader }
             );
         }
 
         if (!isValidBody(body)) {
             return new Response(
-                JSON.stringify({ status: 400, message: "Corpo da requisição malformado." }),
+                JSON.stringify({ message: "Corpo da requisição malformado." }),
                 { status: 400, headers: jsonHeader }
             );
         }
@@ -126,7 +126,7 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
     } catch (err) {
         console.error("Erro interno:", err);
         return new Response(
-            JSON.stringify({ status: 500, message: "Erro inesperado no servidor." }),
+            JSON.stringify({ message: "Erro inesperado no servidor." }),
             { status: 500, headers: jsonHeader }
         );
     }

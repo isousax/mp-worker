@@ -12,7 +12,6 @@ export async function ConsultIntention(request: Request, env: Env): Promise<Resp
 
         if (uri.searchParams.has("email") && uri.searchParams.has("templateId")) {
 
-
             const sql = `
                 SELECT email, template_id, intention_id, status, preference_id
                 FROM intentions
@@ -45,14 +44,14 @@ export async function ConsultIntention(request: Request, env: Env): Promise<Resp
         }
 
         return new Response(
-            JSON.stringify({ status: 400, message: "Parametros da requisição malformados." }),
+            JSON.stringify({ message: "Parametros da requisição malformados." }),
             { status: 400, headers: jsonHeader }
         );
     }
     catch (err) {
         console.error("Erro interno:", err);
         return new Response(
-            JSON.stringify({ status: 500, message: "Erro inesperado no servidor." }),
+            JSON.stringify({ message: "Erro inesperado no servidor." }),
             { status: 500, headers: jsonHeader }
         );
     }
