@@ -15,8 +15,8 @@ export async function ConsultPaymentStatus(request: Request, env: Env): Promise<
       const paymentId = uri.searchParams.get("payment_id");
 
       const sql = `
-        SELECT status 
-        FROM intentions 
+        SELECT status, final_url
+        FROM intentions
         WHERE payment_id = ?
       `;
 
@@ -31,6 +31,12 @@ export async function ConsultPaymentStatus(request: Request, env: Env): Promise<
       }
 
       console.info("Status do pagamento: ", intention.status);
+      if (intention.status === "approved") {
+        return new Response(
+          JSON.stringify({ status: intention.status, final_url: intention.final_url }),
+          { status: 200, headers: jsonHeader }
+        );
+      }
       return new Response(
         JSON.stringify({ status: intention.status }),
         { status: 200, headers: jsonHeader }
