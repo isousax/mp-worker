@@ -41,7 +41,7 @@ export async function ConsultPaymentStatus(request: Request, env: Env): Promise<
       if (intention.status === "approved") {
         return new Response(
           JSON.stringify({ status: intention.status, final_url: intention.final_url }),
-          { status: 200, headers: jsonHeader }
+          { status: 200, headers: headers }
         );
       }
       return new Response(
