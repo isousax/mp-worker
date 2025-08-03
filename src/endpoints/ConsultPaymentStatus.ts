@@ -30,6 +30,13 @@ export async function ConsultPaymentStatus(request: Request, env: Env): Promise<
         );
       }
 
+      const headers = new Headers();
+      headers.set("Content-Type", "application/json");
+      headers.set("Cache-Control", "public, max-age=3600");
+      headers.set("Access-Control-Allow-Origin", "*");
+      headers.set("Access-Control-Allow-Methods", "GET");
+      headers.set("Access-Control-Allow-Headers", "Content-Type");
+
       console.info("Status do pagamento: ", intention.status);
       if (intention.status === "approved") {
         return new Response(
