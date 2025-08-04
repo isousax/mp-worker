@@ -45,7 +45,7 @@ export async function moveAndUpdateImages(env: Env, intentionId: string) {
             // keyParts[0] = 'temp', keyParts[1] = template, keyParts[2] = filename
             const templateName = keyParts[1];
             const filename = keyParts.slice(2).join("/");
-            const newKey = `final/${templateName}/${intentionId}-${filename}`;
+            const newKey = `final/${templateName}/${intentionId}/${filename}`;
             const object = await env.R2.get(key);
             if (!object) {
                 console.warn(`Arquivo ${key} não encontrado no R2`);
