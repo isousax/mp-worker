@@ -70,7 +70,7 @@ export async function moveAndUpdateImages(env: Env, intentionId: string) {
     WHERE intention_id = ?
   `).bind(JSON.stringify(formData), intentionId).run();
 
-    // Opcional: Retorne um relatório resumido
+    // Relatório resumido
     return {
         updated: results.filter(r => r.status === 'moved').length,
         skipped: results.filter(r => r.status === 'skipped').length,
