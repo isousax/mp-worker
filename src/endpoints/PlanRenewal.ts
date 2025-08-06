@@ -84,7 +84,7 @@ export async function PlanRenewal(
         failure: `https://${env.SITE_DNS}/checkout/${row.template_id}/failure`,
         pending: `https://${env.SITE_DNS}/checkout/${row.template_id}/status`,
       },
-      notification_url: `${env.MP_WEBHOOK_URL}?type=renewal`,
+      notification_url: `${env.MP_WEBHOOK_URL}?operation=renewal`,
       auto_return: "approved",
       external_reference: body.intentionId,
     };

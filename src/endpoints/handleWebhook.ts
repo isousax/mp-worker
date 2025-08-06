@@ -34,7 +34,7 @@ export async function handleWebhook(
       headers: jsonHeader,
     });
   }
-  const operationType = new URL(request.url).searchParams.get("type");
+  const operationType = new URL(request.url).searchParams.get("operation");
 
   if (body.type !== "payment" || !body.data?.id) {
     console.info(
