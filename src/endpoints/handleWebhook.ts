@@ -142,7 +142,7 @@ export async function handleWebhook(
       WHERE intention_id = ?
     `
     )
-      .bind(intentionId, expirationDate)
+      .bind(expirationDate, intentionId)
       .run();
 
     try {
