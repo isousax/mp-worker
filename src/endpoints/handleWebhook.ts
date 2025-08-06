@@ -4,9 +4,7 @@ import { moveAndUpdateImages } from "../service/imageManager";
 interface WebhookBody {
   resource?: string;
   topic?: string;
-  data?: {
-    id: string;
-  };
+  data?: { id: string };
   type?: string;
 }
 
@@ -25,165 +23,169 @@ export async function handleWebhook(
     "Access-Control-Allow-Methods": "POST",
     "Access-Control-Allow-Headers": "Content-Type",
   };
-  const expirationDate = new Date(
-    Date.now() + 365 * 24 * 60 * 60 * 1000
-  ).toISOString(); // 1 ano de expiração
 
   let body: WebhookBody;
   try {
     body = await request.json();
   } catch {
+    console.error("[Webhook] Payload inválido:", await request.text());
     return new Response(JSON.stringify({ message: "JSON inválido" }), {
       status: 400,
       headers: jsonHeader,
     });
   }
+  const operationType = new URL(request.url).searchParams.get("type");
 
-  if (body.type === "payment" && body.data?.id) {
-    const paymentId = body.data.id;
-    console.info("ID do pagamento recebido:", paymentId);
-
-    const paymentRes = await fetch(
-      `https://api.mercadopago.com/v1/payments/${paymentId}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${env.MP_ACCESS_TOKEN}`,
-        },
-      }
-    );
-
-    if (!paymentRes.ok) {
-      const errorText = await paymentRes.text();
-      console.error("Erro ao buscar pagamento:", errorText);
-      return new Response(
-        JSON.stringify({
-          message: "Erro ao buscar pagamento",
-          error: errorText,
-        }),
-        {
-          status: paymentRes.status,
-          headers: jsonHeader,
-        }
-      );
-    }
-
-    let paymentData: PaymentData;
-    try {
-      paymentData = (await paymentRes.json()) as PaymentData;
-      console.info(
-        "Status do pagamento:",
-        JSON.stringify(paymentData.status, null, 2)
-      );
-    } catch (error) {
-      return new Response(
-        JSON.stringify({ message: "Resposta inválida do Mercado Pago" }),
-        {
-          status: 500,
-          headers: jsonHeader,
-        }
-      );
-    }
-
-    const { status, external_reference: intentionId } = paymentData;
-
-    if (!intentionId) {
-      return new Response(
-        JSON.stringify({ message: "Referência externa ausente." }),
-        { status: 400, headers: jsonHeader }
-      );
-    }
-
-    const intentionRecord = await env.DB.prepare(
-      `
-      SELECT payment_id
-      FROM intentions
-      WHERE intention_id = ?
-    `
-    )
-      .bind(intentionId)
-      .first();
-
-    if (!intentionRecord) {
-      return new Response(
-        JSON.stringify({ message: "Intenção não encontrada." }),
-        { status: 404, headers: jsonHeader }
-      );
-    }
-
-    if (!intentionRecord.payment_id) {
-      await env.DB.prepare(
-        `
-        UPDATE intentions
-        SET payment_id = ?
-        WHERE intention_id = ?
-      `
-      )
-        .bind(paymentId, intentionId)
-        .run();
-
-      console.info(`Payment ID atualizado para intenção ${intentionId}`);
-    }
-
-    if (status !== "approved") {
-      return new Response(
-        JSON.stringify({ message: "Pagamento não aprovado." }),
-        {
-          status: 200,
-          headers: jsonHeader,
-        }
-      );
-    }
-
-    await env.DB.prepare(
-      `
-      UPDATE intentions
-      SET status = 'approved', updated_at = datetime('now'), expires_in = ?
-      WHERE intention_id = ?
-    `
-    )
-      .bind(expirationDate, intentionId)
-      .run();
-
-    try {
-      const report = await moveAndUpdateImages(env, intentionId);
-      console.info(
-        `Relatório de movimentação de imagens para intenção ${intentionId}:`,
-        JSON.stringify(report, null, 2)
-      );
-    } catch (err) {
-      console.error("Erro ao movimentar imagens ou atualização do banco:", err);
-      return new Response(
-        JSON.stringify({
-          message: "Erro interno no processamento pós-pagamento.",
-        }),
-        {
-          status: 500,
-          headers: jsonHeader,
-        }
-      );
-    }
-
+  if (body.type !== "payment" || !body.data?.id) {
     console.info(
-      `Pagamento aprovado e imagens movidas para intenção ${intentionId}`
-    );
-
-    return new Response(
-      JSON.stringify({
-        message: "Pagamento aprovado e processado com sucesso.",
-      }),
-      {
-        status: 200,
-        headers: jsonHeader,
-      }
-    );
-  } else {
-    console.warn(
-      `Webhook ignorado. type="${body.type}", topic="${body.topic}", id=${body.data?.id}`
+      `[Webhook] Ignorado. type=${body.type} topic=${body.topic} id=${body.data?.id}`
     );
     return new Response(JSON.stringify({ message: "OK" }), {
       status: 200,
       headers: jsonHeader,
     });
+  }
+
+  const paymentId = body.data.id;
+  console.info(`[Webhook][${paymentId}] Início - operação=${operationType}`);
+
+  let paymentData: PaymentData;
+  try {
+    const resp = await fetch(
+      `https://api.mercadopago.com/v1/payments/${paymentId}`,
+      {
+        headers: { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` },
+      }
+    );
+    if (!resp.ok) throw new Error(`MP status ${resp.status}`);
+    paymentData = await resp.json();
+    console.info(
+      `[Webhook][${paymentId}] Pago MP status=${paymentData.status} ref=${paymentData.external_reference}`
+    );
+  } catch (err: any) {
+    console.error(`[Webhook][${paymentId}] Erro fetch MP:`, err.message || err);
+    return new Response(
+      JSON.stringify({ message: "Erro ao buscar pagamento MP" }),
+      { status: 502, headers: jsonHeader }
+    );
+  }
+
+  const intentionId = paymentData.external_reference;
+  if (!intentionId) {
+    console.error(`[Webhook][${paymentId}] Falha: external_reference ausente`);
+    return new Response(
+      JSON.stringify({ message: "Referência externa ausente." }),
+      { status: 400, headers: jsonHeader }
+    );
+  }
+
+  const record = await env.DB.prepare(
+    `SELECT payment_id, expires_in FROM intentions WHERE intention_id = ?`
+  )
+    .bind(intentionId)
+    .first();
+
+  if (!record) {
+    console.error(`[Webhook][${intentionId}] Intenção não encontrada`);
+    return new Response(
+      JSON.stringify({ message: "Intenção não encontrada." }),
+      { status: 404, headers: jsonHeader }
+    );
+  }
+
+  // --- Atualiza payment_id se ainda não foi gravado ou se mudou ---
+  if (!record.payment_id || record.payment_id !== paymentId) {
+    await env.DB.prepare(
+      `UPDATE intentions SET payment_id = ?, updated_at = datetime('now') WHERE intention_id = ?`
+    )
+      .bind(paymentId, intentionId)
+      .run();
+    console.info(`[Webhook][${intentionId}] payment_id atualizado`);
+  }
+
+  if (paymentData.status !== "approved") {
+    console.info(
+      `[Webhook][${intentionId}] Pagamento status=${paymentData.status} (não aprovado)`
+    );
+    return new Response(
+      JSON.stringify({ message: "Pagamento não aprovado." }),
+      { status: 200, headers: jsonHeader }
+    );
+  }
+
+  // --- Fluxo de renovação ---
+  if (operationType === "renewal") {
+    try {
+      console.info(`[Webhook][${intentionId}] Processando renewal`);
+      if (!record.expires_in) {
+        throw new Error("expires_in ausente");
+      }
+
+      const cur = new Date(record.expires_in as string);
+      if (cur < new Date()) cur.setTime(Date.now());
+
+      const next = new Date(cur);
+      next.setFullYear(cur.getFullYear() + 1);
+
+      await env.DB.prepare(
+        `UPDATE intentions SET expires_in = ?, updated_at = datetime('now') WHERE intention_id = ?`
+      )
+        .bind(next.toISOString(), intentionId)
+        .run();
+
+      console.info(
+        `[Webhook][${intentionId}] Renewal OK - nova expira=${next.toISOString()}`
+      );
+      return new Response(
+        JSON.stringify({ message: "Renovação processada com sucesso." }),
+        { status: 200, headers: jsonHeader }
+      );
+    } catch (err: any) {
+      console.error(
+        `[Webhook][${intentionId}] Erro no renewal:`,
+        err.message || err
+      );
+      return new Response(
+        JSON.stringify({ message: "Falha ao processar renewal." }),
+        { status: 500, headers: jsonHeader }
+      );
+    }
+  }
+
+  // --- Fluxo de novo pagamento (approved) ---
+  try {
+    console.info(`[Webhook][${intentionId}] Processando novo payment`);
+
+    const newExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    await env.DB.prepare(
+      `UPDATE intentions
+         SET status = 'approved',
+             expires_in = ?,
+             updated_at = datetime('now')
+       WHERE intention_id = ?`
+    )
+      .bind(newExpiry.toISOString(), intentionId)
+      .run();
+
+    console.info(
+      `[Webhook][${intentionId}] expires_in definido para ${newExpiry.toISOString()}`
+    );
+
+    const report = await moveAndUpdateImages(env, intentionId);
+    console.info(`[Webhook][${intentionId}] moveImages OK:`, report);
+
+    return new Response(
+      JSON.stringify({ message: "Pagamento processado com sucesso." }),
+      { status: 200, headers: jsonHeader }
+    );
+  } catch (err: any) {
+    console.error(
+      `[Webhook][${intentionId}] Erro no fluxo de pagamento:`,
+      err.message || err
+    );
+    return new Response(
+      JSON.stringify({ message: "Erro no processamento do pagamento." }),
+      { status: 500, headers: jsonHeader }
+    );
   }
 }
