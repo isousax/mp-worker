@@ -3,6 +3,7 @@ import type { R2Bucket } from "@cloudflare/workers-types";
 import { CreatePreference } from "./endpoints/CreatePreference";
 import { handleWebhook } from "./endpoints/handleWebhook";
 import { ConsultPaymentStatus } from "./endpoints/ConsultPaymentStatus";
+import { PlanRenewal } from "./endpoints/PlanRenewal";
 
 export interface Env {
   MP_ACCESS_TOKEN: string;
@@ -37,6 +38,10 @@ export default {
 
     if (request.method === "POST" && pathname === "/webhook") {
       return await handleWebhook(request, env);
+    }
+
+    if (request.method === "POST" && pathname === "/renewal") {
+      return await PlanRenewal(request, env);
     }
 
     if (request.method === "OPTIONS") {
