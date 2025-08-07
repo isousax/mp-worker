@@ -17,7 +17,7 @@ export async function ConsultPaymentStatus(request: Request, env: Env): Promise<
       const sql = `
         SELECT status, final_url
         FROM intentions
-        WHERE payment_id = ?
+        WHERE ',' || payment_id || ',' LIKE '%,' || ? || ',%'
       `;
 
       const intention = await env.DB.prepare(sql).bind(paymentId).first();
