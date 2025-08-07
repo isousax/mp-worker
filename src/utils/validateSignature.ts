@@ -22,15 +22,20 @@ export async function validateSignature(
   const v1 = v1Part?.split("=")[1];
   if (!ts || !v1 || !body.data?.id) return false;
 
-  const template = `id:${body.data.id};request-id:${requestId};ts:${ts}`;
+  const template = `id:${body.data.id};request-id:${requestId};ts:${ts};`;
 
   const encoder = new TextEncoder();
-  const data = encoder.encode(template + secret);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  // Mercado Pago exige HMAC-SHA256, usando o segredo como chave
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(template));
+  const hashArray = Array.from(new Uint8Array(signatureBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
   return hashHex === v1;
 }
