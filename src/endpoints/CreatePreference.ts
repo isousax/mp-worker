@@ -29,7 +29,9 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
 
         try {
             body = await request.json();
+            console.info("[CreatePreference] Body recebido:", JSON.stringify(body));
         } catch {
+            console.error("[CreatePreference] Body malformado");
             return new Response(
                 JSON.stringify({ message: "Corpo da requisição malformado." }),
                 { status: 400, headers: jsonHeader }
@@ -37,17 +39,18 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
         }
 
         if (!isValidBody(body)) {
+            console.error("[CreatePreference] Body inválido após validação");
             return new Response(
                 JSON.stringify({ message: "Corpo da requisição malformado." }),
                 { status: 400, headers: jsonHeader }
             );
         }
 
-
         const intentionId = nanoId(10, env.PREFIX_ID);
         const finalSiteUrl = `https://${env.SITE_DNS}/site/${intentionId}`;
         const createdAt = new Date().toISOString();
 
+        console.info(`[CreatePreference] Gerando preference para intenção ${intentionId}`);
         const preference = {
             items: [
                 {
@@ -75,6 +78,7 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
             external_reference: intentionId,
         };
 
+        console.info(`[CreatePreference] Enviando para Mercado Pago:`, JSON.stringify(preference));
         const responseMP = await fetch("https://api.mercadopago.com/checkout/preferences", {
             method: "POST",
             headers: {
@@ -86,11 +90,13 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
 
         if (!responseMP.ok) {
             const errorText = await responseMP.text();
-            console.error("Erro ao criar preferencia de pagamento:", responseMP.status, errorText);
+            console.error(`[CreatePreference] Erro ao criar preferencia de pagamento:`, responseMP.status, errorText);
             return new Response(
                 JSON.stringify({ status: responseMP.status, message: `Erro na criação da preferencia de pagamento.` }),
                 { status: responseMP.status, headers: jsonHeader });
         }
+
+        console.info(`[CreatePreference] Preferência criada com sucesso no Mercado Pago para intenção ${intentionId}`);
 
         const sqlIntention = `
         INSERT INTO intentions (intention_id, email, template_id, plan, price, final_url, created_at)
@@ -105,6 +111,7 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
             finalSiteUrl,
             createdAt
         ).run();
+        console.info(`[CreatePreference] Registro inserido na tabela intentions: ${intentionId}`);
 
         const sqlModel = `
         INSERT INTO ${body.productInfo.template_id} (intention_id, email, form_data, created_at)
@@ -116,9 +123,11 @@ export async function CreatePreference(request: Request, env: Env): Promise<Resp
             JSON.stringify(body.form_data),
             createdAt
         ).run();
+        console.info(`[CreatePreference] Registro inserido na tabela ${body.productInfo.template_id}: ${intentionId}`);
 
         const dataResponseMP = await responseMP.json() as { id: string; init_point: string };
 
+        console.info(`[CreatePreference] Preferência finalizada. Retornando para o cliente.`);
         return new Response(JSON.stringify({ id: dataResponseMP.id, init_point: dataResponseMP.init_point }), {
             headers: jsonHeader,
             status: 200,
