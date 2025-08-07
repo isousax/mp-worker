@@ -3,7 +3,7 @@
  * @param request - A requisição recebida.
  * @param body - O corpo do webhook.
  * @param secret - O segredo usado para gerar a assinatura.
- * @returns Verdadeiro se a assinatura for válida, falso caso contrário.
+ * @returns true apenas se a assinatura for válida.
  */
 export async function validateSignature(
   request: Request,

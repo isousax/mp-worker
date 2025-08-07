@@ -55,7 +55,6 @@ export async function moveAndUpdateImages(env: Env, intentionId: string) {
             await env.R2.put(newKey, body, {
                 httpMetadata: { contentType: object.httpMetadata.contentType },
             });
-            await env.R2.delete(key);
             photo.preview = `https://${env.WORKER_DNS}/file/${newKey}`;
             return { status: 'moved', photo };
         } catch (err) {
