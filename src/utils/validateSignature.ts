@@ -22,7 +22,7 @@ export async function validateSignature(
   const v1 = v1Part?.split("=")[1];
   if (!ts || !v1 || !body.data?.id) return false;
 
-  const template = `id:${body.data.id};request-id:${requestId};ts:${ts};`;
+  const template = `id:${body.data.id};request-id:${requestId};ts:${ts}`;
 
   const encoder = new TextEncoder();
   const data = encoder.encode(template + secret);
