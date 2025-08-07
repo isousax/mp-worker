@@ -13,6 +13,7 @@ export interface Env {
   PREFIX_ID: string;
   DB: D1Database;
   R2: R2Bucket;
+  mpSecret: string;
 }
 
 export default {

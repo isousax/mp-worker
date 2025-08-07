@@ -5,11 +5,12 @@
     template_id TEXT NOT NULL,                   -- ex: 'nossa_historia'
     plan TEXT NOT NULL,                          -- ex: 'standard', 'premium'
     price NUMBER NOT NULL,                       -- você pode usar TEXT por simplicidade (ex: '19.90')
-    payment_id TEXT UNIQUE,                             -- identifica o pagamento do Mercado Pago
+    payment_id TEXT,                             -- identifica o pagamento do Mercado Pago
     status TEXT DEFAULT 'pending',               -- 'pending', 'approved', 'cancelled', etc.
     final_url TEXT NOT NULL,                     -- onde acessar o site gerado
     created_at TEXT NOT NULL,
-    updated_at TEXT
+    updated_at TEXT,
+    expires_in TEXT
   );
 
 -- Tabela de dados específicos do template "Nossa História"
@@ -19,6 +20,6 @@ CREATE TABLE IF NOT EXISTS nossa_historia (
   status TEXT DEFAULT 'pending',              -- 'pending', 'approved', 'cancelled', etc.
   form_data TEXT NOT NULL,                     -- JSON com todos os dados do template
   created_at TEXT NOT NULL,
-  updated_at TEXT
+  updated_at TEXT,
   FOREIGN KEY (intention_id) REFERENCES intentions(intention_id) ON DELETE CASCADE
 );
