@@ -1,6 +1,6 @@
 import type { Env } from "../index";
-import { nanoId } from "../util/nanoId";
-import { planLabels } from "../util/planLabels";
+import { nanoId } from "../utils/nanoId";
+import { planLabels } from "../utils/planLabels";
 
 interface PreferenceRequestBody {
     productInfo: {

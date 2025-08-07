@@ -1,48 +1,7 @@
-import { timingSafeEqual } from "crypto";
 import type { Env } from "../index";
 import { moveAndUpdateImages } from "../service/imageManager";
+import { validateSignature } from "../utils/validateSignature";
 
-/**
- * Valida a assinatura do webhook do Mercado Pago.
- * @param request - A requisição recebida.
- * @param body - O corpo do webhook.
- * @param secret - O segredo usado para gerar a assinatura.
- * @returns Verdadeiro se a assinatura for válida, falso caso contrário.
- */
-async function validateSignature(
-  request: Request,
-  body: WebhookBody,
-  secret: string
-): Promise<boolean> {
-  const signature = request.headers.get("x-signature");
-  const requestId = request.headers.get("x-request-id") || "";
-  if (!signature || !requestId) {
-    console.error("Cabeçalhos de assinatura ausentes");
-    return false;
-  }
-
-  const [tsPart, v1Part] = signature.split(",");
-  const ts = tsPart?.split("=")[1];
-  const v1 = v1Part?.split("=")[1];
-  if (!ts || !v1 || !body.data?.id) return false;
-
-  // Monta a string conforme template
-  const template = `id:${body.data.id};request-id:${requestId};ts:${ts};`;
-
-  // Gera o hash SHA-256 usando crypto.subtle (Cloudflare Workers)
-  const encoder = new TextEncoder();
-  const data = encoder.encode(template + secret);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-
-  // Compara o hash gerado com o v1 recebido
-  const receivedSignature = new TextEncoder().encode(v1);
-  const computedSignature = new TextEncoder().encode(hashHex);
-  return timingSafeEqual(receivedSignature, computedSignature);
-}
 interface WebhookBody {
   resource?: string;
   topic?: string;
@@ -144,7 +103,7 @@ export async function handleWebhook(
     );
   }
 
-  // --- Adiciona payment_id à lista, sem sobrescrever ---
+  // --- Adiciona payment_id à lista ---
   let paymentIdList = String(record.payment_id || "")
     .split(",")
     .map((id) => id.trim())

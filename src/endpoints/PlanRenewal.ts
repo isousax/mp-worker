@@ -1,5 +1,5 @@
 import type { Env } from "../index";
-import { planLabels } from "../util/planLabels";
+import { planLabels } from "../utils/planLabels";
 
 interface RenovationRequestBody {
   intentionId: string;
