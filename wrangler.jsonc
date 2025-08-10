@@ -10,7 +10,7 @@
 		"SITE_DNS": "dedicart.com.br",
 		"PREFIX_ID": "P-",
 		"MP_WEBHOOK_URL": "https://dedicart-mp-worker.dedicart.workers.dev/webhook",
-		"WORKER_DNS": "dedicart-file-worker.dedicart.workers.dev"
+		"FILE_WORKER_URL": "dedicart-file-worker.dedicart.workers.dev"
 	},
 	"d1_databases": [
 		{

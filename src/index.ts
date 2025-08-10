@@ -9,7 +9,7 @@ export interface Env {
   MP_ACCESS_TOKEN: string;
   SITE_DNS: string;
   MP_WEBHOOK_URL: string;
-  WORKER_DNS: string;
+  FILE_WORKER_URL: string;
   PREFIX_ID: string;
   DB: D1Database;
   R2: R2Bucket;

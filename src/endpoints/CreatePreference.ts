@@ -1,6 +1,7 @@
 import type { Env } from "../index";
 import { nanoId } from "../utils/nanoId";
 import { planLabels } from "../utils/planLabels";
+import { generateQrCode } from "../service/generateQrCode";
 
 interface PreferenceRequestBody {
   productInfo: {
@@ -106,11 +107,21 @@ export async function CreatePreference(
         { status: responseMP.status, headers: jsonHeader }
       );
     }
+
+    let qrCodeUrl: string | undefined = undefined;
+    if (body.productInfo.plan === "premium") {
+      try {
+        qrCodeUrl = await generateQrCode(finalSiteUrl, intentionId, env);
+      } catch (err) {
+        console.error("[CreatePreference] Erro ao gerar QR code:", err);
+      }
+    }
+
     try {
       const sqlIntention = `
-        INSERT INTO intentions (intention_id, email, template_id, plan, price, final_url, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        `;
+        INSERT INTO intentions (intention_id, email, template_id, plan, price, final_url, created_at, qr_code)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `;
       await env.DB.prepare(sqlIntention)
         .bind(
           intentionId,
@@ -119,7 +130,8 @@ export async function CreatePreference(
           body.productInfo.plan,
           body.productInfo.price,
           finalSiteUrl,
-          createdAt
+          createdAt,
+          qrCodeUrl
         )
         .run();
     } catch (err) {

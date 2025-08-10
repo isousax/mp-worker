@@ -10,7 +10,8 @@
     final_url TEXT NOT NULL,                     -- onde acessar o site gerado
     created_at TEXT NOT NULL,
     updated_at TEXT,
-    expires_in TEXT
+    expires_in TEXT,
+    qr_code TEXT
   );
 
 -- Tabela de dados específicos do template "Nossa História"
