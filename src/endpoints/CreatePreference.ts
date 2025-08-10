@@ -108,7 +108,7 @@ export async function CreatePreference(
       );
     }
 
-    let qrCodeUrl: string | undefined = undefined;
+    let qrCodeUrl: string | null;
     if (body.productInfo.plan === "premium") {
       try {
         qrCodeUrl = await generateQrCode(finalSiteUrl, intentionId, env);
