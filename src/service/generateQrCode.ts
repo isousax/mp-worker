@@ -27,7 +27,7 @@ export async function generateQrCode(
     });
 
     // 2) Upload via file-worker
-    const uploadUrl = `https://${fileWorkerUrl}/upload?key=${encodeURIComponent(key)}`;
+    const uploadUrl = `${fileWorkerUrl}/upload?key=${encodeURIComponent(key)}`;
     console.info("[generateQrCode] Enviando QR code para file-worker:", uploadUrl);
     const uploadRes = await fetch(uploadUrl, {
       method: "PUT",
