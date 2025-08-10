@@ -1,20 +1,25 @@
-// service/generateQrCode.ts
 import QRCode from "qrcode";
 
-type UploadResponse = { url?: string };
-
 /**
- * Gera SVG de QR code e envia ao file-worker (/upload?key=...).
- * Retorna a URL pública (string) ou lança erro.
+ * Gera SVG de QR code, salva no R2 (via env.R2.put) e retorna a URL pública.
+ *
+ * Requisitos:
+ * - Este Worker precisa ter binding R2 disponível em `env.R2`.
+ * - Para montar a URL pública, o código tenta (em ordem):
+ *   1) env.FILE_WORKER_PUBLIC_HOST (ex: "dedicart-file-worker.dedicart.workers.dev")
+ *   2) env.FILE_WORKER_URL (ex: "https://dedicart-file-worker.dedicart.workers.dev")
+ *   3) env.SITE_DNS (ex: "dedicart.com.br") — usado como fallback se nada mais estiver setado.
+ *
+ * Observação: o domínio escolhido deve servir `/file/{key}` (ex.: file-worker deve ter rota /file/:key).
  */
+
 export async function generateQrCode(
   finalSiteUrl: string,
   intentionId: string,
   env: any
 ): Promise<string> {
-  const fileWorkerUrl = `https://${env.FILE_WORKER_URL}`;
-  if (!fileWorkerUrl || typeof fileWorkerUrl !== "string") {
-    throw new Error("FILE_WORKER_URL não configurado no env do Worker.");
+  if (!env || !env.R2) {
+    throw new Error("R2 binding não encontrado em env. Verifique se env.R2 está configurado.");
   }
 
   const key = `qrcodes/${intentionId}.svg`;
@@ -26,29 +31,26 @@ export async function generateQrCode(
       color: { dark: "#000000", light: "#FFFFFF" },
     });
 
-    // 2) Upload via file-worker
-    const uploadUrl = `${fileWorkerUrl}/upload?key=${encodeURIComponent(key)}`;
-    console.info("[generateQrCode] Enviando QR code para file-worker:", uploadUrl);
-    const uploadRes = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": "image/svg+xml" },
-      body: svg,
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(svg);
+
+    await env.R2.put(key, bytes, {
+      httpMetadata: { contentType: "image/svg+xml" },
     });
 
-    if (!uploadRes.ok) {
-      const errText = await uploadRes.text().catch(() => "");
-      throw new Error(`Falha ao enviar QR para file-worker: ${uploadRes.status} ${errText}`);
+    let publicHost = env.FILE_WORKER_URL;
+
+    if (!publicHost || typeof publicHost !== "string") {
+      throw new Error(
+        "Não foi possível determinar host público para servir o arquivo. Configure FILE_WORKER_PUBLIC_HOST or FILE_WORKER_URL or SITE_DNS in env."
+      );
     }
 
-    const uploadData = (await uploadRes.json().catch(() => ({} as UploadResponse))) as UploadResponse;
+    publicHost = publicHost.replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
-    if (uploadData && typeof uploadData.url === "string" && uploadData.url.length > 0) {
-      return uploadData.url;
-    }
-
-    throw new Error("Resposta do file-worker não contém url.");
+    const publicUrl = `https://${publicHost}/file/${key}`;
+    return publicUrl;
   } catch (err) {
-    console.error("[generateQrCode] erro:", err);
-    throw err;
+    console.error("[generateQrCode] erro ao gerar/enviar QR:", err);
   }
 }
