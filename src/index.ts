@@ -14,6 +14,7 @@ export interface Env {
   DB: D1Database;
   R2: R2Bucket;
   mpSecret: string;
+  WORKER_API_KEY: string;
 }
 
 export default {
@@ -23,17 +24,8 @@ export default {
     if (request.method === "POST" && pathname === "/preference/create") {
       return await CreatePreference(request, env);
     }
-    /* 
-     if (request.method === "POST" && pathname === "/intentions/reuse") {
-       return await ReuseIntentions(request, env);
-     }
-    
-    if (request.method === "GET" && pathname === "/intentions") {
-      return await ConsultIntention(request, env);
 
-    }
-    */
-   if (request.method === "GET" && pathname === "/consult-payment-status") {
+    if (request.method === "GET" && pathname === "/consult-payment-status") {
       return await ConsultPaymentStatus(request, env);
     }
 
@@ -50,8 +42,8 @@ export default {
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
-          "Access-Control-Allow-Headers": "Content-Type"
-        }
+          "Access-Control-Allow-Headers": "Content-Type",
+        },
       });
     }
 

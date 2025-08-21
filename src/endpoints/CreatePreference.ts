@@ -2,6 +2,7 @@ import type { Env } from "../index";
 import { nanoId } from "../utils/nanoId";
 import { planLabels } from "../utils/planLabels";
 import { generateQrCode } from "../service/generateQrCode";
+import { validateApiKey } from "../utils/validateApiKey";
 
 interface PreferenceRequestBody {
   productInfo: {
@@ -29,6 +30,23 @@ export async function CreatePreference(
     "Access-Control-Allow-Headers": "Content-Type",
   };
   try {
+    if (
+      !validateApiKey(
+        request.headers.get("Authorization")?.split(" ")[1] || "",
+        env
+      )
+    ) {
+      console.info(
+        `Token inválido - Request Token: ${
+          request.headers.get("Authorization")?.split(" ")[1] || ""
+        } - Env Token: ${env.WORKER_API_KEY}`
+      );
+      return new Response(JSON.stringify({ message: "Token inválido." }), {
+        status: 401,
+        headers: jsonHeader,
+      });
+    }
+
     let body: PreferenceRequestBody;
 
     try {

@@ -1,5 +1,6 @@
 import type { Env } from "../index";
 import { planLabels } from "../utils/planLabels";
+import { validateApiKey } from "../utils/validateApiKey";
 
 interface RenovationRequestBody {
   intentionId: string;
@@ -25,6 +26,23 @@ export async function PlanRenewal(
   };
 
   try {
+    if (
+      !validateApiKey(
+        request.headers.get("Authorization")?.split(" ")[1] || "",
+        env
+      )
+    ) {
+      console.info(
+        `Token inválido - Request Token: ${
+          request.headers.get("Authorization")?.split(" ")[1] || ""
+        } - Env Token: ${env.WORKER_API_KEY}`
+      );
+      return new Response(JSON.stringify({ message: "Token inválido." }), {
+        status: 401,
+        headers: jsonHeader,
+      });
+    }
+
     let body: RenovationRequestBody;
 
     try {
@@ -52,8 +70,11 @@ export async function PlanRenewal(
         { status: 404, headers: jsonHeader }
       );
     }
-    if (!row.template_id || !row.plan ||
-        typeof row.price !== "number" || row.price <= 0
+    if (
+      !row.template_id ||
+      !row.plan ||
+      typeof row.price !== "number" ||
+      row.price <= 0
     ) {
       console.error("Dados incompletos/ausentes no banco.");
       return new Response(
