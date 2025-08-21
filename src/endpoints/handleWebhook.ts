@@ -2,7 +2,6 @@ import type { Env } from "../index";
 import { moveAndUpdateImages } from "../service/imageManager";
 import { validateSignature } from "../utils/validateSignature";
 import { planExpires } from "../utils/planExpires";
-import { pl } from "zod/v4/locales";
 
 interface WebhookBody {
   resource?: string;
@@ -26,24 +25,35 @@ export async function handleWebhook(
     "Access-Control-Allow-Methods": "POST",
     "Access-Control-Allow-Headers": "Content-Type",
   };
+
   const mpSecret = env.mpSecret;
   let body: WebhookBody;
+
   try {
     body = await request.json();
-  } catch {
-    console.error("[Webhook] Payload inválido:", await request.text());
+  } catch (error) {
+    console.error("[Webhook] Payload inválido:", await request.text(), error);
     return new Response(JSON.stringify({ message: "JSON inválido" }), {
       status: 400,
       headers: jsonHeader,
     });
   }
+
   const operationType = new URL(request.url).searchParams.get("operation");
 
   // --- Validação da assinatura Mercado Pago ---
-  if (!(await validateSignature(request, body, mpSecret))) {
-    console.error("[Webhook] Assinatura Mercado Pago inválida!");
-    return new Response(JSON.stringify({ message: "Token inválido" }), {
-      status: 401,
+  try {
+    if (!(await validateSignature(request, body, mpSecret))) {
+      console.error("[Webhook] Assinatura Mercado Pago inválida!");
+      return new Response(JSON.stringify({ message: "Token inválido" }), {
+        status: 401,
+        headers: jsonHeader,
+      });
+    }
+  } catch (error) {
+    console.error("[Webhook] Erro na validação de assinatura:", error);
+    return new Response(JSON.stringify({ message: "Erro na validação" }), {
+      status: 500,
       headers: jsonHeader,
     });
   }
@@ -69,7 +79,11 @@ export async function handleWebhook(
         headers: { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` },
       }
     );
-    if (!resp.ok) throw new Error(`MP status ${resp.status}`);
+
+    if (!resp.ok) {
+      throw new Error(`MP status ${resp.status}: ${await resp.text()}`);
+    }
+
     paymentData = await resp.json();
     console.info(
       `[Webhook][${paymentId}] Pago MP status=${paymentData.status} ref=${paymentData.external_reference}`
@@ -91,36 +105,56 @@ export async function handleWebhook(
     );
   }
 
-  const record = await env.DB.prepare(
-    `SELECT payment_id, expires_in, plan FROM intentions WHERE intention_id = ?`
-  )
-    .bind(intentionId)
-    .first();
+  let record;
+  try {
+    record = await env.DB.prepare(
+      `SELECT payment_id, expires_in, plan, template_id FROM intentions WHERE intention_id = ?`
+    )
+      .bind(intentionId)
+      .first();
 
-  if (!record) {
-    console.error(`[Webhook][${intentionId}] Intenção não encontrada`);
+    if (!record) {
+      console.error(`[Webhook][${intentionId}] Intenção não encontrada`);
+      return new Response(
+        JSON.stringify({ message: "Intenção não encontrada." }),
+        { status: 404, headers: jsonHeader }
+      );
+    }
+  } catch (error) {
+    console.error(`[Webhook][${intentionId}] Erro ao buscar intenção:`, error);
     return new Response(
-      JSON.stringify({ message: "Intenção não encontrada." }),
-      { status: 404, headers: jsonHeader }
+      JSON.stringify({ message: "Erro interno ao buscar dados." }),
+      { status: 500, headers: jsonHeader }
     );
   }
 
   // --- Adiciona payment_id à lista ---
-  let paymentIdList = String(record.payment_id || "")
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean);
-  if (!paymentIdList.includes(paymentId)) {
-    paymentIdList.push(paymentId);
-    const newPaymentIdStr = paymentIdList.join(",");
-    await env.DB.prepare(
-      `UPDATE intentions SET payment_id = ?, updated_at = datetime('now') WHERE intention_id = ?`
-    )
-      .bind(newPaymentIdStr, intentionId)
-      .run();
-    console.info(
-      `[Webhook][${intentionId}] payment_id atualizado: ${newPaymentIdStr}`
+  try {
+    let paymentIdList = String(record.payment_id || "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    if (!paymentIdList.includes(paymentId)) {
+      paymentIdList.push(paymentId);
+      const newPaymentIdStr = paymentIdList.join(",");
+
+      await env.DB.prepare(
+        `UPDATE intentions SET payment_id = ?, updated_at = datetime('now') WHERE intention_id = ?`
+      )
+        .bind(newPaymentIdStr, intentionId)
+        .run();
+
+      console.info(
+        `[Webhook][${intentionId}] payment_id atualizado: ${newPaymentIdStr}`
+      );
+    }
+  } catch (error) {
+    console.error(
+      `[Webhook][${intentionId}] Erro ao atualizar payment_id:`,
+      error
     );
+    // Não retorna erro aqui pois não é crítico para o processamento
   }
 
   if (paymentData.status !== "approved") {
@@ -150,7 +184,13 @@ export async function handleWebhook(
       await env.DB.prepare(
         `UPDATE intentions SET expires_in = ?, updated_at = datetime('now'), status = ? WHERE intention_id = ?`
       )
-        .bind(next.toISOString(), 'approved', intentionId)
+        .bind(next.toISOString(), "approved", intentionId)
+        .run();
+
+      await env.DB.prepare(
+        `UPDATE ${record.template_id} SET updated_at = datetime('now'), status = ? WHERE intention_id = ?`
+      )
+        .bind("approved", intentionId)
         .run();
 
       console.info(
@@ -166,7 +206,7 @@ export async function handleWebhook(
         err.message || err
       );
       return new Response(
-        JSON.stringify({ message: "Falha ao processar renewal." }),
+        JSON.stringify({ message: "Falha ao processar renovação." }),
         { status: 500, headers: jsonHeader }
       );
     }
@@ -177,7 +217,10 @@ export async function handleWebhook(
     console.info(`[Webhook][${intentionId}] Processando novo payment`);
 
     const newExpiry = new Date();
-    newExpiry.setMonth(newExpiry.getMonth() + planExpires(record.plan as string));
+    newExpiry.setMonth(
+      newExpiry.getMonth() + planExpires(record.plan as string)
+    );
+
     await env.DB.prepare(
       `UPDATE intentions
          SET status = 'approved',
