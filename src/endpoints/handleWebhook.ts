@@ -1,6 +1,8 @@
 import type { Env } from "../index";
 import { moveAndUpdateImages } from "../service/imageManager";
 import { validateSignature } from "../utils/validateSignature";
+import { planExpires } from "../utils/planExpires";
+import { pl } from "zod/v4/locales";
 
 interface WebhookBody {
   resource?: string;
@@ -90,7 +92,7 @@ export async function handleWebhook(
   }
 
   const record = await env.DB.prepare(
-    `SELECT payment_id, expires_in FROM intentions WHERE intention_id = ?`
+    `SELECT payment_id, expires_in, plan FROM intentions WHERE intention_id = ?`
   )
     .bind(intentionId)
     .first();
@@ -143,7 +145,7 @@ export async function handleWebhook(
       if (cur < new Date()) cur.setTime(Date.now());
 
       const next = new Date(cur);
-      next.setFullYear(cur.getFullYear() + 1);
+      next.setMonth(cur.getMonth() + planExpires(record.plan as string));
 
       await env.DB.prepare(
         `UPDATE intentions SET expires_in = ?, updated_at = datetime('now') WHERE intention_id = ?`
@@ -174,7 +176,8 @@ export async function handleWebhook(
   try {
     console.info(`[Webhook][${intentionId}] Processando novo payment`);
 
-    const newExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    const newExpiry = new Date();
+    newExpiry.setMonth(newExpiry.getMonth() + planExpires(record.plan as string));
     await env.DB.prepare(
       `UPDATE intentions
          SET status = 'approved',
