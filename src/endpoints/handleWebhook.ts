@@ -41,29 +41,21 @@ export async function handleWebhook(
 
   const operationType = new URL(request.url).searchParams.get("operation");
 
-  // --- Validação da assinatura Mercado Pago ---
-  try {
-    if (!(await validateSignature(request, body, mpSecret))) {
-      console.error("[Webhook] Assinatura Mercado Pago inválida!");
-      return new Response(JSON.stringify({ message: "Token inválido" }), {
-        status: 401,
-        headers: jsonHeader,
-      });
-    }
-  } catch (error) {
-    console.error("[Webhook] Erro na validação de assinatura:", error);
-    return new Response(JSON.stringify({ message: "Erro na validação" }), {
-      status: 500,
-      headers: jsonHeader,
-    });
-  }
-
   if (body.type !== "payment" || !body.data?.id) {
     console.info(
       `[Webhook] Ignorado. type=${body.type} topic=${body.topic} id=${body.data?.id}`
     );
     return new Response(JSON.stringify({ message: "OK" }), {
       status: 200,
+      headers: jsonHeader,
+    });
+  }
+
+  // --- Validação da assinatura Mercado Pago ---
+  if (!(await validateSignature(request, body, mpSecret))) {
+    console.error("[Webhook] Assinatura Mercado Pago inválida!");
+    return new Response(JSON.stringify({ message: "Token inválido" }), {
+      status: 401,
       headers: jsonHeader,
     });
   }
