@@ -148,9 +148,9 @@ export async function handleWebhook(
       next.setMonth(cur.getMonth() + planExpires(record.plan as string));
 
       await env.DB.prepare(
-        `UPDATE intentions SET expires_in = ?, updated_at = datetime('now') WHERE intention_id = ?`
+        `UPDATE intentions SET expires_in = ?, updated_at = datetime('now'), status = ? WHERE intention_id = ?`
       )
-        .bind(next.toISOString(), intentionId)
+        .bind(next.toISOString(), 'approved', intentionId)
         .run();
 
       console.info(
