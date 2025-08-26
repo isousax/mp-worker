@@ -4,6 +4,5 @@ const prefixMap: Record<string, string> = {
 };
 
 export function prefixLabels(intentionId: string): string | null {
-    const prefix = intentionId.replace(/-.+/, '').toUpperCase();
-    return prefixMap[prefix] ?? null;
+    return prefixMap[intentionId] ?? null;
 }
