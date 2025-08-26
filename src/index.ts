@@ -10,7 +10,6 @@ export interface Env {
   SITE_DNS: string;
   MP_WEBHOOK_URL: string;
   FILE_WORKER_URL: string;
-  PREFIX_ID: string;
   DB: D1Database;
   R2: R2Bucket;
   mpSecret: string;

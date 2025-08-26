@@ -3,6 +3,7 @@ import { nanoId } from "../utils/nanoId";
 import { planLabels } from "../utils/planLabels";
 import { generateQrCode } from "../service/generateQrCode";
 import { validateApiKey } from "../utils/validateApiKey";
+import { prefixLabels } from "../utils/prefixLabels";
 
 interface PreferenceRequestBody {
   productInfo: {
@@ -67,7 +68,7 @@ export async function CreatePreference(
       );
     }
 
-    const intentionId = nanoId(10, env.PREFIX_ID);
+    const intentionId = nanoId(10, prefixLabels(body.productInfo.template_id));
     const finalSiteUrl = `https://${env.SITE_DNS}/site/${intentionId}`;
     const createdAt = new Date().toISOString();
 
