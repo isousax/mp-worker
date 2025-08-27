@@ -131,6 +131,7 @@ export async function CreatePreview(
       JSON.stringify({
         id: intentionId,
         preview_url: finalSiteUrl,
+        template_id: body.productInfo.template_id
       }),
       {
         headers: jsonHeader,
