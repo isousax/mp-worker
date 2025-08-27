@@ -4,6 +4,7 @@ import { CreatePreference } from "./endpoints/CreatePreference";
 import { handleWebhook } from "./endpoints/handleWebhook";
 import { ConsultPaymentStatus } from "./endpoints/ConsultPaymentStatus";
 import { PlanRenewal } from "./endpoints/PlanRenewal";
+import { CreatePreview } from "./endpoints/CreatePreview";
 
 export interface Env {
   MP_ACCESS_TOKEN: string;
@@ -22,6 +23,10 @@ export default {
 
     if (request.method === "POST" && pathname === "/preference/create") {
       return await CreatePreference(request, env);
+    }
+
+    if (request.method === "POST" && pathname === "/preview/create") {
+      return await CreatePreview(request, env);
     }
 
     if (request.method === "GET" && pathname === "/consult-payment-status") {
