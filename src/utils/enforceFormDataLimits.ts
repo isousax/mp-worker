@@ -12,7 +12,7 @@ export type LimitsMap = Record<string, number>;
 export function enforceFormDataLimits(
   formData: Record<string, any>,
   plan: string | undefined,
-  limits: LimitsMap = { basic: 4, standart: 6, standard: 6, premium: 10 }
+  limits: LimitsMap = { basic: 4, standard: 6, premium: 10 }
 ): Record<string, any> {
   const planKey = String(plan || "").toLowerCase();
   const limit = limits[planKey];
