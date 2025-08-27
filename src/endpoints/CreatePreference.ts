@@ -166,7 +166,7 @@ export async function CreatePreference(
     }
 
     try {
-      enforceFormDataLimits(body.form_data || {}, body.productInfo.plan);
+      const sanitizedFormData = enforceFormDataLimits(body.form_data || {}, body.productInfo.plan);
 
       const sqlModel = `
         INSERT INTO ${body.productInfo.template_id} (intention_id, email, form_data, created_at)
@@ -176,7 +176,7 @@ export async function CreatePreference(
         .bind(
           intentionId,
           body.payer.email,
-          JSON.stringify(body.form_data),
+          JSON.stringify(sanitizedFormData),
           createdAt
         )
         .run();
