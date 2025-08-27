@@ -4,6 +4,7 @@ import { planLabels } from "../utils/planLabels";
 import { generateQrCode } from "../service/generateQrCode";
 import { validateApiKey } from "../utils/validateApiKey";
 import { prefixLabels } from "../utils/prefixLabels";
+import { enforceFormDataLimits } from "../utils/enforceFormDataLimits";
 
 interface PreferenceRequestBody {
   productInfo: {
@@ -165,6 +166,8 @@ export async function CreatePreference(
     }
 
     try {
+      enforceFormDataLimits(body.form_data || {}, body.productInfo.plan);
+
       const sqlModel = `
         INSERT INTO ${body.productInfo.template_id} (intention_id, email, form_data, created_at)
         VALUES (?, ?, ?, ?)
@@ -177,6 +180,10 @@ export async function CreatePreference(
           createdAt
         )
         .run();
+
+      console.info(
+        `[CreatePreference] saved form_data for ${intentionId} (plan=${body.productInfo.plan})`
+      );
     } catch (err) {
       console.error(
         `[CreatePreference] Erro ao inserir registro na tabela ${body.productInfo.template_id}:`,
