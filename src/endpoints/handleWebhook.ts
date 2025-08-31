@@ -2,6 +2,7 @@ import type { Env } from "../index";
 import { moveAndUpdateImages } from "../service/imageManager";
 import { validateSignature } from "../utils/validateSignature";
 import { planExpires } from "../utils/planExpires";
+import { validateApiKey } from "../utils/validateApiKey";
 
 interface WebhookBody {
   resource?: string;
@@ -54,10 +55,18 @@ export async function handleWebhook(
   // --- Validação da assinatura Mercado Pago ---
   if (!(await validateSignature(request, body, mpSecret))) {
     console.error("[Webhook] Assinatura Mercado Pago inválida!");
-    return new Response(JSON.stringify({ message: "Token inválido" }), {
-      status: 401,
-      headers: jsonHeader,
-    });
+    if (
+      !validateApiKey(
+        request.headers.get("Authorization")?.split(" ")[1] || "",
+        env
+      )
+    ) {
+      console.error("[Webhook] API Key inválida!");
+      return new Response(JSON.stringify({ message: "Token inválido" }), {
+        status: 401,
+        headers: jsonHeader,
+      });
+    }
   }
 
   const paymentId = body.data.id;
