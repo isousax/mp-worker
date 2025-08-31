@@ -100,6 +100,8 @@ export async function CreatePreference(
       external_reference: intentionId,
     };
 
+    console.info(`[CreatePreference] Criando preferência de pagamento:`, preference);
+
     const responseMP = await fetch(
       "https://api.mercadopago.com/checkout/preferences",
       {
