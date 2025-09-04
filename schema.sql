@@ -36,3 +36,13 @@ CREATE TABLE IF NOT EXISTS infinito_particular (
   updated_at TEXT,
   FOREIGN KEY (intention_id) REFERENCES intentions(intention_id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS bem_vindo_ao_mundo (
+  intention_id TEXT PRIMARY KEY,               -- mesmo ID da intenção
+  email TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',              -- 'pending', 'approved', 'cancelled', etc.
+  form_data TEXT NOT NULL,                     -- JSON com todos os dados do template
+  created_at TEXT NOT NULL,
+  updated_at TEXT,
+  FOREIGN KEY (intention_id) REFERENCES intentions(intention_id) ON DELETE CASCADE
+);
