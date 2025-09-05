@@ -8,7 +8,7 @@
 	},
 	"vars": {
 		"SITE_DNS": "dedicart.com.br",
-		"MP_WEBHOOK_URL": "https://dedicart-mp-worker.dedicart.workers.dev/webhook",
+		"MP_WEBHOOK_URL": "https://webhook-proxy-eosin.vercel.app/api/mp-proxy",
 		"FILE_WORKER_URL": "dedicart-file-worker.dedicart.workers.dev"
 	},
 	"d1_databases": [
